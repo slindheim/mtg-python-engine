@@ -37,19 +37,25 @@ class TestActivatedAbilities(TestGameBase):
             self.assertLessEqual(self.player.mana.pool[mana.Mana.BLACK], 6, "Black mana not spent correctly")
 
     def test_furnace_whelp_ability(self):
-        """Test Furnace Whelp's self-buff ability."""
+        """Test Furnace Whelp's self-buff ability which gives +1/+0 until end of turn for R."""
         with mock.patch('builtins.input', side_effect=[
                 '__self.battlefield.clear()',  # Clear battlefield to track precisely
                 '__self.battlefield.add("Furnace Whelp")',
-                '__self.mana.add(mana.Mana.RED, 3)',  # Add plenty of red mana
+                '__self.mana.add(mana.Mana.RED, 3)',  # Add 3 red mana
+                '__self.mana.pool[mana.Mana.RED] = 3',  # Ensure exactly 3 red mana
+                '__self.tmp = self.battlefield[0].power',  # Store initial power
+                '__self.tmp2 = self.battlefield[0].toughness',  # Store initial toughness
                 'a 0', '', '',  # Activate Furnace Whelp's ability
-                '__assert self.battlefield[0].power == 3',  # Should be +1 power
-                '__assert self.battlefield[0].toughness == 2',  # Toughness unchanged
+                '__assert self.battlefield[0].power == self.tmp + 1',  # Should be +1 power
+                '__assert self.battlefield[0].toughness == self.tmp2',  # Toughness unchanged
+                '__assert self.mana.pool[mana.Mana.RED] == 2',  # Should have used 1 red mana
                 'a 0', '', '',  # Activate again
-                '__assert self.battlefield[0].power == 4',  # Another +1 power
-                '__assert self.battlefield[0].toughness == 2',  # Toughness still unchanged
+                '__assert self.battlefield[0].power == self.tmp + 2',  # Another +1 power
+                '__assert self.battlefield[0].toughness == self.tmp2',  # Toughness still unchanged
+                '__assert self.mana.pool[mana.Mana.RED] == 1',  # Should have used another red mana
                 'a 0', '', '',  # Activate a third time
-                '__assert self.battlefield[0].power == 5',  # Another +1 power
+                '__assert self.battlefield[0].power == self.tmp + 3',  # Another +1 power
+                '__assert self.battlefield[0].toughness == self.tmp2',  # Toughness still unchanged
                 '__assert self.mana.pool[mana.Mana.RED] == 0',  # Should have used all red mana
                 's end', 's end',  # Skip to end phase
                 's upkeep', 's upkeep'  # Complete the turn (cleanup happens between turns)
