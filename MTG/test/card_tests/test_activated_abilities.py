@@ -11,26 +11,28 @@ class TestActivatedAbilities(TestGameBase):
                 '__self.battlefield.clear()',  # Clear battlefield to track precisely
                 '__self.battlefield.add("Zof Shade")',
                 '__self.mana.add(mana.Mana.BLACK, 9)',  # Add plenty of mana
-                '__self.battlefield[0].power = 2',  # Set initial power
-                '__self.battlefield[0].toughness = 2',  # Set initial toughness
                 '__self.mana.pool[mana.Mana.BLACK] = 9',  # Set initial black mana
+                '__self.tmp = self.battlefield[0].power',  # Store initial power
+                '__self.tmp2 = self.battlefield[0].toughness',  # Store initial toughness
                 'a 0', '', '',  # Activate Zof Shade's ability (mana taken automatically)
-                '__self.battlefield[0].power = 4',  # +2 power
-                '__self.battlefield[0].toughness = 4',  # +2 toughness
-                '__self.mana.pool[mana.Mana.BLACK] = 6',  # Costs 3B
+                '__self.tmp3 = self.battlefield[0].power == self.tmp + 2',  # +2 power
+                '__self.tmp4 = self.battlefield[0].toughness == self.tmp2 + 2',  # +2 toughness
+                '__self.tmp5 = self.mana.pool[mana.Mana.BLACK] == 6',  # Costs 3B
                 's end', 's end',  # Skip to end phase
-                's upkeep', 's upkeep',  # Complete the turn (cleanup happens between turns)
-                '__self.battlefield[0].power = 2',  # Back to initial power
-                '__self.battlefield[0].toughness = 2',  # Back to initial toughness
+                's upkeep', 's upkeep'  # Complete the turn (cleanup happens between turns)
                 ]):
             
             self.GAME.handle_turn()
             
+            self.assertTrue(self.player.tmp3, "Zof Shade power didn't increase by 2 after activation")
+            self.assertTrue(self.player.tmp4, "Zof Shade toughness didn't increase by 2 after activation")
+            self.assertTrue(self.player.tmp5, "Black mana not spent correctly")
+            
             shade = next((c for c in self.player.battlefield if c.name == "Zof Shade"), None)
             self.assertIsNotNone(shade, "Zof Shade not found on battlefield")
             
-            self.assertEqual(shade.power, 2, "Zof Shade power incorrect after cleanup")
-            self.assertEqual(shade.toughness, 2, "Zof Shade toughness incorrect after cleanup")
+            self.assertEqual(shade.power, self.player.tmp, "Zof Shade power incorrect after cleanup")
+            self.assertEqual(shade.toughness, self.player.tmp2, "Zof Shade toughness incorrect after cleanup")
             
             self.assertLessEqual(self.player.mana.pool[mana.Mana.BLACK], 6, "Black mana not spent correctly")
 
@@ -39,18 +41,18 @@ class TestActivatedAbilities(TestGameBase):
         with mock.patch('builtins.input', side_effect=[
                 '__self.battlefield.clear()',  # Clear battlefield to track precisely
                 '__self.battlefield.add("Furnace Whelp")',
-                '__self.mana.add(mana.Mana.RED, 1)',
-                '__self.battlefield[0].power = 2',
-                '__self.battlefield[0].toughness = 2',
-                '__self.mana.pool[mana.Mana.RED] = 1',
+                '__self.mana.add(mana.Mana.RED, 3)',  # Add plenty of red mana
                 'a 0', '', '',  # Activate Furnace Whelp's ability
-                '__self.battlefield[0].power = 3',  # +1 power
-                '__self.battlefield[0].toughness = 2',  # Unchanged
-                '__self.mana.pool[mana.Mana.RED] = 0',  # Costs R
+                '__assert self.battlefield[0].power == 3',  # Should be +1 power
+                '__assert self.battlefield[0].toughness == 2',  # Toughness unchanged
+                'a 0', '', '',  # Activate again
+                '__assert self.battlefield[0].power == 4',  # Another +1 power
+                '__assert self.battlefield[0].toughness == 2',  # Toughness still unchanged
+                'a 0', '', '',  # Activate a third time
+                '__assert self.battlefield[0].power == 5',  # Another +1 power
+                '__assert self.mana.pool[mana.Mana.RED] == 0',  # Should have used all red mana
                 's end', 's end',  # Skip to end phase
-                's upkeep', 's upkeep',  # Complete the turn (cleanup happens between turns)
-                '__self.battlefield[0].power = 2',  # Back to initial power
-                '__self.battlefield[0].toughness = 2',  # Unchanged
+                's upkeep', 's upkeep'  # Complete the turn (cleanup happens between turns)
                 ]):
             
             self.GAME.handle_turn()
@@ -58,10 +60,10 @@ class TestActivatedAbilities(TestGameBase):
             whelp = next((c for c in self.player.battlefield if c.name == "Furnace Whelp"), None)
             self.assertIsNotNone(whelp, "Furnace Whelp not found on battlefield")
             
-            self.assertEqual(whelp.power, 2, "Furnace Whelp power incorrect after cleanup")
-            self.assertEqual(whelp.toughness, 2, "Furnace Whelp toughness incorrect after cleanup")
+            self.assertEqual(whelp.power, 2, "Furnace Whelp power should return to base value after turn")
+            self.assertEqual(whelp.toughness, 2, "Furnace Whelp toughness should remain unchanged")
             
-            self.assertEqual(self.player.mana.pool[mana.Mana.RED], 0, "Red mana not spent correctly")
+            self.assertEqual(self.player.mana.pool[mana.Mana.RED], 0, "Red mana should be spent")
 
     def test_chargeup_abilities(self):
         """Test abilities that use charge counters."""
