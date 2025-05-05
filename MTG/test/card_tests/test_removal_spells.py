@@ -50,14 +50,14 @@ class TestRemovalSpells(TestGameBase):
                 '__self.mana.add(mana.Mana.BLUE, 1)',
                 's main', 's main',
                 '__self.tmp = len(self.opponent.battlefield) == 1',
-                '__self.tmp = __self.tmp and len(self.battlefield) == 1',
+                '__self.tmp = self.tmp and len(self.battlefield) == 1',
                 'p Void Snare', 'ob 0', '', '',
                 '__self.opponent.battlefield.clear()',
                 '__self.opponent.hand.add("Soulmender")',
                 '__self.graveyard.add("Void Snare")',
-                '__self.tmp = __self.tmp and len(self.opponent.battlefield) == 0',
-                '__self.tmp = __self.tmp and len(self.opponent.hand) == 1',
-                '__self.tmp = __self.tmp and len(self.graveyard) == 1',
+                '__self.tmp = self.tmp and len(self.opponent.battlefield) == 0',
+                '__self.tmp = self.tmp and len(self.opponent.hand) == 1',
+                '__self.tmp = self.tmp and len(self.graveyard) == 1',
                 's upkeep', 's upkeep']):
             
             self.GAME.handle_turn()

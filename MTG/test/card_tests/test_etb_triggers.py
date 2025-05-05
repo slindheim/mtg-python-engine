@@ -3,90 +3,91 @@ import unittest
 
 from MTG.test.test_game import TestGameBase
 from MTG import mana
+from MTG import token
+from MTG.gamesteps import Step
 
 class TestETBTriggers(TestGameBase):
     def test_etb_token_creators(self):
         """Test ETB token creator cards."""
         with mock.patch('builtins.input', side_effect=[
-                '__self.battlefield.clear()',  # Clear battlefield to track precisely
-                '__self.add_card_to_hand("Coral Barrier")',
-                '__self.mana.add(mana.Mana.BLUE, 3)',
-                's main', 's main',  # Skip to main phase for both players
-                'p Coral Barrier', '', '',
+                '__self.battlefield.clear()',
+                '__self.hand.clear()',
+                '__self.mana.clear()',
+                '__self.tmp = True',  # Initialize tmp to True
+                
+                '__self.token_count_before_barrier = len(self.battlefield)',
                 '__self.battlefield.add("Coral Barrier")',
-                '__token = self.create_token("Squid", 1, 1)',
-                '__token.add_ability("Islandwalk")',
-                '__token.is_token = True',
-                '__self.battlefield.add(token)',
-                '__self.add_card_to_hand("Blade Splicer")',
-                '__self.mana.add(mana.Mana.WHITE, 3)',
-                'p Blade Splicer', '', '',
+                
+                '', '',  # Empty inputs to let the stack resolve
+                
+                '__self.tmp = self.tmp and any(c.name == "Coral Barrier" for c in self.battlefield)',
+                '__self.squid_token = next((c for c in self.battlefield if c.is_token and "Squid" in c.name), None)',
+                '__self.tmp = self.tmp and self.squid_token is not None',
+                '__self.tmp = self.tmp and self.squid_token.power == 1',
+                '__self.tmp = self.tmp and self.squid_token.toughness == 1',
+                '__self.tmp = self.tmp and self.squid_token.has_ability("Islandwalk")',
+                
+                's end', 's end',
+                's upkeep', 's upkeep',
+                
+                '__self.token_count_before_splicer = len(self.battlefield)',
                 '__self.battlefield.add("Blade Splicer")',
-                '__golem = self.create_token("Golem", 3, 3)',
-                '__golem.add_ability("First Strike")',
-                '__golem.add_subtype("Golem")',
-                '__golem.is_token = True',
-                '__self.battlefield.add(golem)',
-                's upkeep', 's upkeep']):
+                
+                '', '',  # Empty inputs to let the stack resolve
+                
+                '__self.tmp = self.tmp and any(c.name == "Blade Splicer" for c in self.battlefield)',
+                '__self.golem_token = next((c for c in self.battlefield if c.is_token and "Golem" in c.name), None)',
+                '__self.tmp = self.tmp and self.golem_token is not None',
+                '__self.tmp = self.tmp and self.golem_token.power == 3',
+                '__self.tmp = self.tmp and self.golem_token.toughness == 3',
+                '__self.tmp = self.tmp and self.golem_token.has_ability("First_Strike")',
+                '__self.tmp = self.tmp and len(self.battlefield) == self.token_count_before_splicer + 2',
+                
+                's end', 's end',
+                's upkeep', 's upkeep'
+                ]):
             
             self.GAME.handle_turn()
             
-            barrier = next((c for c in self.player.battlefield if c.name == "Coral Barrier"), None)
-            self.assertIsNotNone(barrier, "Coral Barrier not found on battlefield")
-            
-            splicer = next((c for c in self.player.battlefield if c.name == "Blade Splicer"), None)
-            self.assertIsNotNone(splicer, "Blade Splicer not found on battlefield")
-            
-            tokens = [c for c in self.player.battlefield if c.is_token]
-            self.assertEqual(len(tokens), 2, "Expected 2 tokens on battlefield")
-            
-            islandwalk_tokens = [c for c in tokens if c.has_ability("Islandwalk")]
-            self.assertEqual(len(islandwalk_tokens), 1, "Expected 1 token with Islandwalk")
-            
-            golem_tokens = [c for c in tokens if c.has_subtype("Golem")]
-            self.assertEqual(len(golem_tokens), 1, "Expected 1 Golem token")
-            self.assertTrue(golem_tokens[0].has_ability("First Strike"), "Golem token missing First Strike")
-            self.assertEqual(golem_tokens[0].power, 3, "Golem token power incorrect")
-            self.assertEqual(golem_tokens[0].toughness, 3, "Golem token toughness incorrect")
-            
-            self.assertEqual(len(self.player.battlefield), 4, "Expected 4 permanents on battlefield")
+            self.assertTrue(self.player.tmp, "ETB token creator test failed")
 
     def test_etb_card_draw(self):
         """Test ETB card draw effects."""
         with mock.patch('builtins.input', side_effect=[
-                '__self.hand.clear()',  # Clear hand to track card count precisely
-                '__self.library.clear()',  # Clear library to track precisely
-                '__[self.library.add("Plains") for _ in range(10)]',  # Add 10 cards to library
-                '__self.life = 20',  # Reset life total
-                '__self.add_card_to_hand("Wall of Omens")',
-                '__self.mana.add(mana.Mana.WHITE, 2)',
-                's main', 's main',  # Skip to main phase for both players
-                'p Wall of Omens', '', '',
+                '__self.hand.clear()',
+                '__self.battlefield.clear()',
                 '__self.library.clear()',
-                '__[self.library.add("Plains") for _ in range(9)]',  # 10 - 1 = 9 cards left
+                '__[self.library.add("Plains") for _ in range(10)]',
+                '__self.initial_library_size = len(self.library)',
+                '__self.initial_hand_size = len(self.hand)',
+                '__self.tmp = True',  # Initialize tmp to True
+                
                 '__self.battlefield.add("Wall of Omens")',
-                '__self.add_card_to_hand("Tireless Missionaries")',
-                '__self.mana.add(mana.Mana.WHITE, 3)',
-                # Cast Tireless Missionaries
-                'p Tireless Missionaries', '', '',
-                '__self.life = 23',  # 20 + 3 = 23
+                
+                '', '',  # Empty inputs to let the stack resolve
+                
+                '__self.tmp = self.tmp and any(c.name == "Wall of Omens" for c in self.battlefield)',
+                '__self.tmp = self.tmp and len(self.library) == self.initial_library_size - 1',
+                '__self.tmp = self.tmp and len(self.hand) == self.initial_hand_size + 1',
+                
+                's end', 's end',
+                's upkeep', 's upkeep',
+                
+                '__self.life_before_missionaries = self.life',
                 '__self.battlefield.add("Tireless Missionaries")',
-                's upkeep', 's upkeep']):
+                
+                '', '',  # Empty inputs to let the stack resolve
+                
+                '__self.tmp = self.tmp and any(c.name == "Tireless Missionaries" for c in self.battlefield)',
+                '__self.tmp = self.tmp and self.life == self.life_before_missionaries + 3',
+                
+                's end', 's end',
+                's upkeep', 's upkeep'
+                ]):
             
             self.GAME.handle_turn()
             
-            wall = next((c for c in self.player.battlefield if c.name == "Wall of Omens"), None)
-            self.assertIsNotNone(wall, "Wall of Omens not found on battlefield")
-            
-            missionaries = next((c for c in self.player.battlefield if c.name == "Tireless Missionaries"), None)
-            self.assertIsNotNone(missionaries, "Tireless Missionaries not found on battlefield")
-            
-            self.assertLessEqual(len(self.player.library), 9, "Library should have at most 9 cards after Wall of Omens")
-            
-            # Verify life total after Tireless Missionaries
-            self.assertGreaterEqual(self.player.life, 23, "Life total should be at least 23 after Tireless Missionaries")
-            
-            self.assertEqual(len(self.player.battlefield), 2, "Expected 2 creatures on battlefield")
+            self.assertTrue(self.player.tmp, "ETB card draw and life gain test failed")
 
 
 if __name__ == '__main__':
