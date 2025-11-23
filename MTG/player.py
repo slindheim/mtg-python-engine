@@ -22,9 +22,11 @@ class Player():
     is_spell = False
 
     def __init__(self, deck, name='player',
-                 startingLife=20, maxHandSize=7, game=None):
+                 startingLife=20, maxHandSize=7, game=None, agent=None):
         self.name = name
         self.game = game
+        self.agent = agent  # placeholder / hook for AI agents
+
         self.timestamp = -1
         self.life = startingLife
         self.startingLife = startingLife
@@ -95,7 +97,6 @@ class Player():
     @property
     def stack(self):
         return self.game.stack if self.game else None
-    
 
     def get_zone(self, zone_type):
         return {
@@ -108,7 +109,6 @@ class Player():
             # zone.ZoneType.COMMAND: self.command
         }[zone_type]
 
-
     def get_action(self):
         """ asks the player to do something
 
@@ -118,11 +118,16 @@ class Player():
         _play = None
 
         while answer and _play is None:
-            answer = self.make_choice(
-                "What would you like to do? {}{}, {}\n".format(
-                    self.name,
-                    '*' if self.is_active else '',
-                    self.game.step))
+            # --- HUMAN vs AGENT hook ---
+            if self.agent is None:
+                answer = self.make_choice(
+                    "What would you like to do? {}{}, {}\n".format(
+                        self.name,
+                        '*' if self.is_active else '',
+                        self.game.step))
+            else:
+                # Agent returns a command string like "", "p 0", "a 1_0", etc.
+                answer = self.agent.select_action(self, self.game)
 
             if self.game.test:
                 print("\t" + self.name + ", " +
@@ -177,7 +182,6 @@ class Player():
                         card = self.hand.get_card_by_name(name)
                         assert card
 
-
                     # timing & restrictions
                     can_play = True
                     if card.is_land and self.landPlayed >= self.landPerTurn:
@@ -194,7 +198,6 @@ class Player():
                     # choose targets
                     if can_play:
                         can_target = card.targets()
-
 
                     # pay mana costs
                     if can_play and can_target:
@@ -239,7 +242,7 @@ class Player():
                                     print("error processing creature for convoke")
                                     pass
 
-                        can_pay = self.mana.canPay(cost) 
+                        can_pay = self.mana.canPay(cost)
 
                     if can_play and can_target and can_pay:
                         self.hand.remove(card)
@@ -363,7 +366,6 @@ class Player():
 
         return chosen
 
-
     def add_static_effect(self, name, value, source, toggle_func, exempt_source=False):
         """ toggle_func: condition func on which permanents the static effect affects -- lambda eff: True
 
@@ -376,14 +378,13 @@ class Player():
             p.add_effect(name, value, source=source, is_active=False, toggle_func=toggle_func)
 
         if not exempt_source:  # when this func is called during permanent.__init__(),
-                               # the card isn't on the battlefield yet. 
+                               # the card isn't on the battlefield yet.
             source.add_effect(name, value, source=source, is_active=False, toggle_func=toggle_func)
 
     def remove_static_effect(self, source):
         """ remove all effects from a certain source """
         self.static_effects = [eff for eff in self.static_effects if eff[2] != source]
         # each permanent should auto-remove since source's timestamp has changed
-
 
     def trigger(self, condition, source=None, amount=1):
         """Pass player-init triggers to relevant permanents
@@ -403,7 +404,6 @@ class Player():
                 p.status.damage_taken = 0
             self.apply_to_battlefield(f)
 
-
         if condition in self.trigger_listeners:
             # make copy so we can remove while iterating
             for p, tstamp in self.trigger_listeners[condition][:]:
@@ -412,7 +412,6 @@ class Player():
                 else:  # expired
                     print("player-based trigger {} expired".format((p, tstamp)))
                     self.trigger_listeners[condition].remove((p, tstamp))
-
 
     def play_card(self, card):
         if isinstance(card, str):  # convert card name to Card object
@@ -467,8 +466,8 @@ class Player():
             target_zone = self.hand
 
         if num == 1 or type(criteria_funcs) != list:
-            cards = list(self.library.filter(filter_func=criteria_funcs))
-            chosen = self.make_choice_items_in_list(cards, num)
+            cards_found = list(self.library.filter(filter_func=criteria_funcs))
+            chosen = self.make_choice_items_in_list(cards_found, num)
 
             if target_zone:
                 for c in chosen:
@@ -582,8 +581,6 @@ class Player():
         print("Bolstering {}".format(target))
         target.add_counter("+1/+1", num)
 
-
-
     def sacrifice(self, num=1, filter_func=lambda p: p.is_creature):
         if num <= 0:
             return True
@@ -623,7 +620,6 @@ class Player():
             p.sacrifice()
 
         return sacs
-
 
     # TODO: handle paying X life / X mana
     def pay(self, mana=None, life=0):
@@ -709,7 +705,7 @@ class Player():
 
         return filt
 
-    def apply_to_zone(self, apply_func, zone, condition=lambda p: True):
+    def apply_to_zone(self, apply_func, zone_type, condition=lambda p: True):
         """Apply some function to all cards in a (public) zone
 
         - filter out by a condition function if necessary
@@ -720,24 +716,21 @@ class Player():
 
         did_something = False
         # use [:] to iterate over a copy of the list in case items get changed
-        cards = self.get_zone(zone)[:]
+        cards_list = self.get_zone(zone_type)[:]
 
-        for card in cards:
+        for card in cards_list:
             if condition(card):
                 apply_func(card)
                 did_something = True
 
         return did_something
 
-
     def apply_to_battlefield(self, apply_func, condition=lambda p: True):
         return self.apply_to_zone(apply_func, zone.ZoneType.BATTLEFIELD, condition)
-
 
     def lose(self):
         print("{} has lost the game\n".format(self))
         self.lost = True
-
 
     def print_player_state(self):
         print("\nPLAYER {}\nlife: {}\n".format(self.name, self.life))

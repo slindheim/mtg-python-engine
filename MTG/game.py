@@ -14,6 +14,8 @@ from MTG import combat
 from MTG import triggers
 from MTG.exceptions import *
 
+from MTG.agents import RandomAgent
+
 
 class Game(object):
     """A game object. This represents the entire state of an in-progress MTG game.

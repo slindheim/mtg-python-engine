@@ -37,3 +37,17 @@ class RandomAgent:
 
         # 3) If nothing to play, just pass
         return ""
+
+
+# Heuristiken abbilden - siehe Notes 
+# relativ simpel mal über Regeln
+# ob ma das in einem Bauma abbilden kann
+# priorität bedenken
+# keine klare mini.max trennung - pass
+# diese ausprobieren & nach Metriken evaluieren
+# einlesen python präsente agenten die einfach implementiert werden können (Monte Carlo..)
+# diese implementieren, ausprobieren & nach Metriken evaluieren
+# noch nix RI, evtl Kleinigkeit nachschieben
+# natürlich nicht mit den Heuristiken, die der Agent nutzt vergleichen beim Bewerten
+# zwei bissl bessere als random, die gegeneinander antreten
+# relative Bewertung der zwei Agenten mit Heuristiken
