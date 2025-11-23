@@ -113,11 +113,14 @@ def build_mono_green_deck():
         *["Forest"] * 16,
 
         # Vanilla creatures (we already know these exist for you)
-        *["Runeclaw Bear"] * 12,
+        *["Runeclaw Bear"] * 1,
         *["Centaur Courser"] * 8,
 
         # Simple combat trick
         *["Titanic Growth"] * 4,
+
+        # Bigger creatures
+        *["Charging Rhino"] * 2,
     ]
     return _cards_from_names(names)
 
