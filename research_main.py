@@ -104,20 +104,6 @@ def build_mono_red_deck():
     return _cards_from_names(names)
 
 
-def build_mono_green_deck():
-    names = [
-        # 16 Forests
-        *["Forest"] * 16,
-
-        # Vanilla creatures (we already know these exist for you)
-        *["Runeclaw Bear"] * 12,
-        *["Centaur Courser"] * 8,
-
-        # Simple combat trick
-        *["Titanic Growth"] * 4,
-    ]
-    return _cards_from_names(names)
-
 # -------------------------------------------------------------------
 # Mono-Green Midrange (big dumb creatures + one combat trick)
 # -------------------------------------------------------------------
