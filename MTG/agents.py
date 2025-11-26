@@ -27,10 +27,38 @@ class RandomAgent:
         return f"p {idx}"
 
     def select_choice(self, player, game, prompt_string):
-        if "Choose a target" in prompt_string:
-            return "b 0"
-        return ""
+        """
+        Respond to generic prompts like "Choose a target" etc.
+        Very dumb but *valid* answers for this engine.
+        """
 
+        # 1) Target selection (burn spell, pump spell, etc.)
+        if "Choose a target" in prompt_string:
+            # According to the engine docs, get_target_from_user_input
+            # accepts things like:
+            #   'b 2'  -> 2nd permanent on *your* battlefield
+            # For your simple research setup, it's fine to
+            # just always choose the first creature you control if any;
+            # otherwise, aim at opponent player (p 1).
+            #
+            # NOTE: this is heuristic; it's just to avoid infinite prompts.
+            creatures = player.battlefield.filter(filter_func=lambda p: p.is_creature)
+            if creatures:
+                return "b 0"   # first creature on *your* battlefield
+            else:
+                # 'p 1' should usually be opponent; if not, engine will reject
+                return "p 1"
+
+        # 2) Other prompts that ask "Which creature..." etc.
+        if "Which creature" in prompt_string:
+            return "0"
+
+        if "Which cards would you like to discard" in prompt_string:
+            # discard the first card
+            return "0"
+
+        # 3) Default: just press Enter (no choice)
+        return ""
 
 
 
