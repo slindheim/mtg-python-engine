@@ -26,10 +26,10 @@ class RandomAgent:
         idx = random.randrange(len(player.hand))
         return f"p {idx}"
 
-def select_choice(self, player, game, prompt_string):
-    if "Choose a target" in prompt_string:
-        return "b 0"
-    return ""
+    def select_choice(self, player, game, prompt_string):
+        if "Choose a target" in prompt_string:
+            return "b 0"
+        return ""
 
 
 
