@@ -100,8 +100,8 @@ def build_mono_red_deck():
         *["Thundering Giant"] * 2,
 
         # Burn (instants)
-        *["Lightning Bolt"] * 4,
-        *["Lightning Strike"] * 4,
+        # *["Lightning Bolt"] * 4,
+        # *["Lightning Strike"] * 4,
     ]
     return _cards_from_names(names)
 
@@ -119,7 +119,7 @@ def build_mono_green_deck():
         *["Centaur Courser"] * 8,
 
         # Simple combat trick
-        *["Titanic Growth"] * 4,
+        # *["Titanic Growth"] * 4,
 
         # Bigger creatures
         *["Charging Rhino"] * 2,
@@ -159,18 +159,31 @@ def run_one_game(agent0=None, agent1=None, test=False):
     try:
         g.players_list[0].agent = agent0
         g.players_list[1].agent = agent1
+        players = g.players_list
     except AttributeError:
         # Fallback if Game uses a different attribute name
         g.players[0].agent = agent0
         g.players[1].agent = agent1
+        players = g.players
 
     # 5) Run the full loop
     g.run_game()
 
+    # figure out winner/loser
+    p0, p1 = players
+    if p0.lost and not p1.lost:
+        return 1   # player1 wins
+    elif p1.lost and not p0.lost:
+        return 0   # player0 wins
+    else:
+        return -1  # draw / weird state
+
 
 
 if __name__ == "__main__":
-    run_one_game(test=True)
+    result = run_one_game(test=True)
+    print("Game result:", result)
+
 
 
 # human vs human
