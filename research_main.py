@@ -4,6 +4,9 @@ import sys
 import inspect
 from MTG import card as card_mod
 
+from MTG.exceptions import EmptyLibraryException
+
+
 from MTG.agents import RandomAgent
 
 
@@ -166,32 +169,55 @@ def run_one_game(agent0=None, agent1=None, test=False):
         g.players[1].agent = agent1
         players = g.players
 
-    # 5) Run the full loop
-    g.run_game()
+    # 5) Run the full loop, treat empty library as a loss according to comprehensive rules
+    try:
+        g.run_game()
+    except EmptyLibraryException:
+        decking_player = g.current_player
+        print(f"{decking_player.name} tried to draw from an empty library – loses by decking.")
+        decking_player.lose()
+        opp = decking_player.opponent
+        opp.won = True
 
-    # figure out winner/loser
+
+    # 6) Work out winner/loser based on .lost flags
     p0, p1 = players
-    if p0.lost and not p1.lost:
-        return 1   # player1 wins
-    elif p1.lost and not p0.lost:
-        return 0   # player0 wins
-    else:
-        return -1  # draw / weird state
 
+    if p0.lost and not p1.lost:
+        return 1  # player 1 wins
+    elif p1.lost and not p0.lost:
+        return 0  # player 0 wins
+    else:
+        # either both lost / neither flagged -> call it a draw for now
+        return -1
 
 
 if __name__ == "__main__":
-    result = run_one_game(test=True)
-    print("Game result:", result)
+    num_games = 20
+    wins_p0 = 0
+    wins_p1 = 0
+    draws = 0
 
-
-
+    
 # human vs human
-# if __name__ == "__main__":
 #     run_one_game()
 
 
 # future implementation
-# if __name__ == "__main__":
-#     from MTG.agents import RandomAgent, HeuristicAgent
 #     run_one_game(agent0=HeuristicAgent(), agent1=RandomAgent(), test=False)
+
+
+    for i in range(num_games):
+        r = run_one_game(test=False)
+        if r == 0:
+            wins_p0 += 1
+        elif r == 1:
+            wins_p1 += 1
+        else:
+            draws += 1
+        print(f"Game {i+1}/{num_games} finished with result {r}")
+
+    print("\nSummary over", num_games, "games:")
+    print("Player 0 wins:", wins_p0)
+    print("Player 1 wins:", wins_p1)
+    print("Draws/other:", draws)
