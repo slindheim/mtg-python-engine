@@ -26,14 +26,10 @@ class RandomAgent:
         idx = random.randrange(len(player.hand))
         return f"p {idx}"
 
-    def select_choice(self, player, game, prompt_string):
-        """
-        Respond to generic prompts like "Choose a target".
-
-        For now we keep it super simple: always pick the first option,
-        which corresponds to index "0" in most prompts.
-        """
-        return "0"
+def select_choice(self, player, game, prompt_string):
+    if "Choose a target" in prompt_string:
+        return "b 0"
+    return ""
 
 
 
