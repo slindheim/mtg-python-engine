@@ -4,6 +4,8 @@ import sys
 import inspect
 from MTG import card as card_mod
 
+from MTG.agents import RandomAgent
+
 
 # -----------------------------------------------------------
 # Load data/M15_cards.py so we can instantiate card classes
@@ -130,30 +132,53 @@ def run_one_game(agent0=None, agent1=None, test=False):
     """
     Run a single game between two decks.
 
-    agent0 / agent1 are placeholders for future AI agents.
-    Right now the engine still drives everything via Player.get_action()
-    and console input, so these are not wired in yet.
+    If agent0/agent1 are None, default to RandomAgent for both.
     """
-    # 1) Load and parse card definitions (must happen before using name_to_id_dict)
+    # 1) Load and parse card definitions
     cards.setup_cards()
 
-    # 2) Build decks as lists of card IDs
+    # 2) Build decks as lists of Card objects
     deck0 = build_mono_red_deck()
     deck1 = build_mono_green_deck()
     decks = [deck0, deck1]
 
-    # 3) Create Game with the decks (see Game.__init__ in game.py)
+    # 3) Create Game with the decks
     g = game.Game(decks=decks, test=test)
 
-    # 4) If/when you have agents, you’ll likely attach them to players here, e.g.:
-    # if agent0 is not None:
-    #     g.players_list[0].agent = agent0
-    # if agent1 is not None:
-    #     g.players_list[1].agent = agent1
+    # 4) Attach agents to the two players
+    #    Depending on how Game is implemented, this is usually either
+    #    g.players or g.players_list. Check game.py if needed.
+    if agent0 is None:
+        agent0 = RandomAgent()
+    if agent1 is None:
+        agent1 = RandomAgent()
 
-    # 5) Run the full loop (see Game.run_game in game.py)
+    # >>> IMPORTANT: one of these will work, the other will raise AttributeError.
+    # Try the first; if Python says "Game object has no attribute 'players_list'",
+    # comment that out and uncomment the second.
+    try:
+        g.players_list[0].agent = agent0
+        g.players_list[1].agent = agent1
+    except AttributeError:
+        # Fallback if Game uses a different attribute name
+        g.players[0].agent = agent0
+        g.players[1].agent = agent1
+
+    # 5) Run the full loop
     g.run_game()
+
 
 
 if __name__ == "__main__":
     run_one_game(test=True)
+
+
+# human vs human
+# if __name__ == "__main__":
+#     run_one_game()
+
+
+# future implementation
+# if __name__ == "__main__":
+#     from MTG.agents import RandomAgent, HeuristicAgent
+#     run_one_game(agent0=HeuristicAgent(), agent1=RandomAgent(), test=False)

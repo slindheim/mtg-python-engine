@@ -320,12 +320,26 @@ class Player():
         return _play
 
     # separate func for unit testing
+# separate func for unit testing
     def make_choice(self, prompt_string):
-        ans = input(prompt_string)
+        """
+        Generic prompt for user input.
+
+        If this player has an agent, delegate the decision to the agent
+        instead of reading from stdin.
+        """
+        if self.agent is None:
+            # Human player
+            ans = input(prompt_string)
+        else:
+            # AI player: agent returns a string answer, e.g. "0" or "".
+            # We pass prompt_string in case the agent wants to inspect it.
+            ans = self.agent.select_choice(self, self.game, prompt_string)
+
         if ans == 'debug':  # TODO: only enable during dev
             pdb.set_trace()
 
-        if not self.game or self.game.test:  # for debug
+        if not self.game or self.game.test:  # for debug / logging
             print(prompt_string[:-1])  # remove ending \n
             print(ans)
         return ans

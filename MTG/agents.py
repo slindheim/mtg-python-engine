@@ -1,42 +1,41 @@
 import random
 
-# Ultra-minimal version (guaranteed not to crash parsing):
-# class RandomAgent:
-#     def select_action(self, player, game):
-#         # 50% chance to do nothing
-#         import random
-#         if random.random() < 0.5:
-#             return ""
-#         # otherwise, try "p 0" and hope card 0 exists / is playable
-#         return "p 0"
-
 
 class RandomAgent:
     """
-    Baseline: choose randomly among a small set of possible text commands
-    that the existing Player.get_action() understands.
+    Baseline: choose randomly among a couple of very simple commands
+    that Player.get_action() already understands.
     """
 
     def select_action(self, player, game):
-        # 1) Sometimes just pass (empty string)
-        #    (assuming blank input is "do nothing / pass")
-        if random.random() < 0.2:
-            return ""   # you saw that 'pass' breaks; empty is safer
+        """
+        Return a command string like:
+        - ""      -> pass / do nothing
+        - "p 0"   -> play the first card in hand
+        """
 
-        # 2) Try to randomly play a card from hand
-        #    Assuming player.hand is a list of Card objects
-        playable_indices = []
-        for i, card in enumerate(player.hand):
-            if card.can_be_played(game, player):   # if such helper doesn't exist, skip this heuristic
-                playable_indices.append(i)
+        # No cards in hand? Just pass.
+        if not player.hand:
+            return ""
 
-        if playable_indices:
-            idx = random.choice(playable_indices)
-            # "p N" is the pattern you triggered accidentally
-            return f"p {idx}"
+        # 50% chance: pass (empty string = like pressing Enter)
+        if random.random() < 0.5:
+            return ""
 
-        # 3) If nothing to play, just pass
-        return ""
+        # Otherwise: pick a random card index in hand and try to play it.
+        idx = random.randrange(len(player.hand))
+        return f"p {idx}"
+
+    def select_choice(self, player, game, prompt_string):
+        """
+        Respond to generic prompts like "Choose a target".
+
+        For now we keep it super simple: always pick the first option,
+        which corresponds to index "0" in most prompts.
+        """
+        return "0"
+
+
 
 
 # Heuristiken abbilden - siehe Notes 
