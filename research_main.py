@@ -1,13 +1,13 @@
-from MTG import game, player, cards
+from MTG import game, cards
+from MTG import card as card_mod
+from MTG.agents import RandomAgent
+from MTG.exceptions import EmptyLibraryException
 
 import sys
 import inspect
-from MTG import card as card_mod
-
-from MTG.exceptions import EmptyLibraryException
-
-
-from MTG.agents import RandomAgent
+import csv
+import os
+import datetime
 
 
 # -----------------------------------------------------------
