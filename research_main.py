@@ -140,7 +140,7 @@ def build_mono_green_deck():
 # -----------------------------------------------------------
 
 
-def run_one_game(agent0=None, agent1=None, test=False):
+def run_one_game(game_id, agent0=None, agent1=None, test=False):
     """
     Run a single game between two decks.
 
