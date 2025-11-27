@@ -1,7 +1,7 @@
 from MTG import game, cards
 from MTG import card as card_mod
 from agents.randoms import RandomAgent
-from agents.heuristics import HeuristicAgent
+from agents.heuristics import HeuristicAgent, HeuristicAgent15
 from MTG.exceptions import EmptyLibraryException
 
 from research_decks import build_mono_red_deck, build_mono_green_deck
@@ -53,8 +53,8 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
     cards.setup_cards()
 
     # 2) Build decks as lists of Card objects
-    deck0_name, deck0 = build_mono_white_deck()
-    deck1_name, deck1 = build_mono_blue_deck()
+    deck0_name, deck0 = build_mono_green_deck()
+    deck1_name, deck1 = build_mono_white_deck()
     decks = [deck0, deck1]
 
     # 3) Create Game with the decks
@@ -217,8 +217,8 @@ if __name__ == "__main__":
 
         for i in range(num_games):
 
-            agent0 = RandomAgent()
-            agent1 = HeuristicAgent()  
+            agent0 = HeuristicAgent()
+            agent1 = HeuristicAgent15()  
 
             stats = run_one_game(game_id=i, agent0=agent0, agent1=agent1, test=False)
             writer.writerow(stats)

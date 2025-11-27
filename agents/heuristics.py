@@ -282,3 +282,147 @@ class HeuristicAgent:
 
         # 4) Default: press Enter / no choice
         return ""
+    
+
+# ---------------------------------------------------------
+# HeuristicAgent (Stage 1: novice heuristics)
+# ---------------------------------------------------------
+
+class HeuristicAgent15(HeuristicAgent):
+    """
+    Stage 1.5: improved blocking on top of Stage 1.0 HeuristicAgent.
+
+    - Main phase: SAME as HeuristicAgent (land + best creature).
+    - Attacks: SAME non-suicidal logic as HeuristicAgent.
+    - Blocking:
+        * If incoming damage >= current life -> block with all available creatures (baby blocking).
+        * Otherwise:
+            - Use blockers that can make favorable trades (kill attacker and survive).
+            - Optionally add "chump" blockers when incoming damage is large.
+    """
+
+    def select_choice(self, player, game, prompt_string):
+        text = prompt_string.lower()
+
+        # ---------- 1) Declare attackers (reuse Stage 1.0 logic) ----------
+        if "attackers" in text or ("attack" in text and "creature" in text):
+            my_creatures = list(player.creatures)
+            n = len(my_creatures)
+            if n == 0:
+                return ""
+
+            opp = player.opponent
+            opp_creatures = list(opp.creatures)
+
+            # If opponent has no blockers -> attack with everything
+            if not opp_creatures:
+                return " ".join(str(i) for i in range(n))
+
+            # Opponent's "best" blocker (worst case for us)
+            opp_stats = [self._get_power_toughness(c) for c in opp_creatures]
+            max_opp_power = max(p for (p, t) in opp_stats)
+            max_opp_tough = max(t for (p, t) in opp_stats)
+
+            safe_attackers = []
+            for idx, c in enumerate(my_creatures):
+                my_p, my_t = self._get_power_toughness(c)
+
+                # worst case: strongest blocker blocks this attacker
+                # if that blocker both kills us AND survives -> skip (suicidal)
+                if max_opp_power >= my_t and my_p < max_opp_tough:
+                    continue
+
+                safe_attackers.append(str(idx))
+
+            if safe_attackers:
+                return " ".join(safe_attackers)
+
+            # no attacker looks safe -> don't attack
+            return ""
+
+        # ---------- 2) Declare blockers (Stage 1.5 blocking) ----------
+        if "blockers" in text or "block with" in text:
+            my_creatures = list(player.creatures)
+            if not my_creatures:
+                return ""
+
+            # Collect indices of available (untapped) blockers
+            candidate_blockers = []
+            for i, c in enumerate(my_creatures):
+                status = getattr(c, "status", None)
+                tapped = getattr(status, "tapped", False) if status is not None else False
+                if not tapped:
+                    candidate_blockers.append((i, c))
+
+            if not candidate_blockers:
+                return ""
+
+            # Determine attacking creatures
+            opp = player.opponent
+            attackers = []
+            for c in opp.creatures:
+                status = getattr(c, "status", None)
+                is_attacking = True
+                if status is not None:
+                    # if engine tracks this flag, use it; else assume attacking
+                    is_attacking = getattr(status, "attacking", True)
+                if is_attacking:
+                    attackers.append(c)
+
+            if not attackers:
+                return ""
+
+            # Estimate incoming damage
+            incoming_damage = 0
+            attacker_stats = []
+            for a in attackers:
+                ap, at = self._get_power_toughness(a)
+                attacker_stats.append((ap, at))
+                incoming_damage += ap
+
+            # (A) Baby rule: if lethal, block with all available
+            if incoming_damage >= player.life:
+                return " ".join(str(i) for (i, c) in candidate_blockers)
+
+            # (B) Medium blocking:
+            #   - use blockers that can kill some attacker and survive
+            good_blockers = set()
+            for idx, b in candidate_blockers:
+                bp, bt = self._get_power_toughness(b)
+                for ap, at in attacker_stats:
+                    # favorable trade: we kill attacker and survive
+                    if bp >= at and bt > ap:
+                        good_blockers.add(idx)
+                        break
+
+            chosen_blockers = set(good_blockers)
+
+            # (C) Optional chump-blocking when damage is big
+            # If incoming damage is more than half our life, we may chump with small creatures
+            if incoming_damage > player.life / 2:
+                for idx, b in candidate_blockers:
+                    if idx in chosen_blockers:
+                        continue
+                    bp, bt = self._get_power_toughness(b)
+                    # small / low-impact creatures as chumps
+                    if bp <= 2:
+                        chosen_blockers.add(idx)
+
+            if not chosen_blockers:
+                # No beneficial or necessary blocks -> no blocks
+                return ""
+
+            # Return indices of chosen blockers (engine decides assignment)
+            return " ".join(str(i) for i in sorted(chosen_blockers))
+
+        # ---------- 3) Discard prompts ----------
+        if "which cards would you like to discard" in text:
+            if len(player.hand) == 0:
+                return ""
+            return "0"
+
+        if "which creature" in text:
+            return "0"
+
+        # ---------- 4) Default: no choice ----------
+        return ""
