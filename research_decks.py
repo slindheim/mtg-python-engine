@@ -107,14 +107,14 @@ def build_mono_red_deck():
         *["Mountain"] * 20,
 
         # One-drops
-        *["Raging Goblin"] * 4,  # Haste, simple
+        *["Raging Goblin"] * 2,  # Haste, simple
 
         # Two-drops
-        *["Borderland Marauder"] * 4,
-        *["Valley Dasher"] * 4,  # Haste 2/2 that must attack
+        *["Borderland Marauder"] * 2,
+        *["Valley Dasher"] * 2,  # Haste 2/2 that must attack
 
         # Three-drops
-        *["Goblin Roughrider"] * 4,
+        *["Goblin Roughrider"] * 2,
 
         # Four-drops
         *["Krenko's Enforcer"] * 2,  # Intimidate
@@ -124,8 +124,8 @@ def build_mono_red_deck():
         *["Thundering Giant"] * 2,   # Haste 4/4
 
         # Burn
-        # *["Lightning Bolt"] * 4,
-        # *["Lightning Strike"] * 4,
+        *["Lightning Bolt"] * 4,
+        *["Lightning Strike"] * 4,
     ]
     return deck_name, _cards_from_names(names)
 
