@@ -122,6 +122,35 @@ class HeuristicAgent:
         it's a reasonable approximation for 'can I probably cast this?'.
         """
         return len(player.lands)
+    
+
+    def _ensure_mana_for(self, player, card):
+        """
+        Very simple mana helper: add enough colored mana to pay this card's CMC.
+
+        We ignore exact color requirements (fine in mono-color) and just dump
+        CMC many mana symbols into the pool.
+        """
+        cmc = self._approx_cmc(card)
+        if cmc <= 0:
+            return
+
+        # Try to guess a color: R or G from characteristics, else generic
+        color_char = "1"
+        if hasattr(card, "characteristics"):
+            colors = getattr(card.characteristics, "color", []) or []
+            if "R" in colors:
+                color_char = "R"
+            elif "G" in colors:
+                color_char = "G"
+
+        mana_str = color_char * cmc   # e.g. "RRR" or "GG"
+        try:
+            player.mana.add_str(mana_str)
+        except Exception:
+            # If anything goes wrong, just skip; engine will reject if we still can't pay
+            pass
+
 
     def select_action(self, player, game):
         """
@@ -168,9 +197,13 @@ class HeuristicAgent:
                 candidate_indices.append((score, i))
 
         if candidate_indices:
-            # Pick the highest scoring candidate
             candidate_indices.sort(reverse=True)
             best_score, best_idx = candidate_indices[0]
+            best_card = player.hand[best_idx]
+
+            # Ensure we actually have enough mana in the pool to cast
+            self._ensure_mana_for(player, best_card)
+
             return f"p {best_idx}"
 
         # 3) Nothing useful to do: pass
