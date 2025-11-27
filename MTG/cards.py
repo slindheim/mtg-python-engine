@@ -5,7 +5,7 @@ import re
 from collections import namedtuple
 
 from MTG.parsedcards import *
-from MTG.exceptions import *
+from MTG.exceptions import DecklistFormatException, CardNotImplementedException
 from MTG import abilities
 from MTG import triggers
 from MTG import mana
