@@ -125,7 +125,28 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.CREATURE],
         "abilities": [static_abilities.StaticAbilities.Flying],
     },
+        "Wind Drake": {
+        "mana_cost": "2U",
+        "color": ["U"],
+        "power": 2,
+        "toughness": 2,
+        "text": "Flying",
+        "subtype": ["Drake"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [static_abilities.StaticAbilities.Flying],
+    },
 
+    "Phantom Warrior": {
+        "mana_cost": "1UU",
+        "color": ["U"],
+        "power": 2,
+        "toughness": 2,
+        "text": "Phantom Warrior can't be blocked.",
+        "subtype": ["Illusion", "Warrior"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [],  # unblockable is handled in rules text only
+    },
+    
     # placeholder for more simple cards
 }
 
