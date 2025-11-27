@@ -44,18 +44,15 @@ def infer_mana_symbol(card):
 
 class HeuristicAgent:
     """
-    Stage 1: simple rule-based 'novice' agent.
+    Stage 1.0: simple rule-based 'novice' agent.
 
-    Heuristics:
-    - Only acts on its own main phases.
-    - Plays a land if possible (one per turn).
-    - Then plays the 'best' creature it approximately can afford:
-        * prioritize higher converted mana cost (mana efficiency)
-        * break ties by higher power, then higher toughness (threat priority)
+    - Main phase:
+        * play land if possible (one per turn)
+        * play best creature we can approximately afford
     - Combat:
-        * attack with creatures that are not obviously suicidal into the
-          opponent's best blocker (very rough approximation).
-        * no blocking yet (Stage 1.5).
+        * attack with creatures that are not obviously suicidal into
+          the opponent's best blocker (rough approximation)
+        * block ONLY if not blocking would be lethal (baby blocking)
 
     If self.stats is present (dict), we update:
       - land_plays
@@ -103,7 +100,7 @@ class HeuristicAgent:
             return
 
         color_char = infer_mana_symbol(card)
-        mana_str = color_char * cmc   # e.g. "WWW" or "UUU"
+        mana_str = color_char * cmc
         try:
             player.mana.add_str(mana_str)
         except Exception:
@@ -135,7 +132,7 @@ class HeuristicAgent:
         if s is not None:
             s["main_phase_actions"] += 1
 
-        # 1) Try to play a land if we still have a land drop available
+        # 1) play land if possible
         if player.landPlayed < player.landPerTurn:
             land_indices = [
                 i for i, c in enumerate(player.hand)
@@ -147,7 +144,7 @@ class HeuristicAgent:
                     s["land_plays"] += 1
                 return f"p {idx}"
 
-        # 2) Try to play the 'best' creature we can approximately afford
+        # 2) play best creature we can (mana-efficiency + P/T)
         approx_mana = self._approx_available_mana(player)
 
         candidate_indices = []
@@ -156,7 +153,7 @@ class HeuristicAgent:
                 continue
 
             cmc = approx_cmc(card)
-            # Basic affordability check: cost <= number of lands
+            # Basic affordability check: cost <= number of land
             if cmc <= approx_mana:
                 power, toughness = self._get_power_toughness(card)
                 # Higher CMC first, then power, then toughness
@@ -175,29 +172,29 @@ class HeuristicAgent:
 
             # ensure we actually have enough mana in the pool
             self._ensure_mana_for(player, best_card)
-
             return f"p {best_idx}"
 
-        # 3) Nothing useful to do: pass
+        # 3) nothing useful to do: pass
         if s is not None:
             s["main_phase_passes"] += 1
         return ""
 
-    # ---------- combat & choices ----------
+    # ---------- combat & prompts ----------
 
     def select_choice(self, player, game, prompt_string):
         """
-        Respond to generic prompts.
-
-        Stage 1 combat behavior:
-        - Attack with all creatures if opponent has no blockers.
-        - Otherwise, attack only with creatures that are not obviously
-          suicidal into the opponent's best blocker (very rough worst-case).
-        - Still never block (blocking to be added in Stage 1.5).
+        Stage 1.0 combat behavior:
+        - Attack:
+            * if opponent has no creatures, attack with all
+            * otherwise, attack only with creatures that are not
+              obviously suicidal vs the opponent's best blocker
+        - Block:
+            * if not blocking would be lethal, block with all available creatures
+            * otherwise, no blocks
         """
         text = prompt_string.lower()
 
-        # 1) Declare attackers: choose a safe subset
+        # 1) Declare attackers
         if "attackers" in text or ("attack" in text and "creature" in text):
             my_creatures = list(player.creatures)
             n = len(my_creatures)
@@ -207,41 +204,71 @@ class HeuristicAgent:
             opp = player.opponent
             opp_creatures = list(opp.creatures)
 
-            # If opponent has no blockers → attack with everything
+            # If opponent has no blockers -> full swing
             if not opp_creatures:
                 return " ".join(str(i) for i in range(n))
 
-            # Compute opponent's "best" blocker (worst-case for us)
+            # Opponent's "best" blocker (worst case for us)
             opp_stats = [self._get_power_toughness(c) for c in opp_creatures]
             max_opp_power = max(p for (p, t) in opp_stats)
             max_opp_tough = max(t for (p, t) in opp_stats)
 
             safe_attackers = []
-
             for idx, c in enumerate(my_creatures):
                 my_p, my_t = self._get_power_toughness(c)
 
-                # Worst-case: strongest blocker blocks this creature.
-                # If that blocker both:
-                # - can kill us (max_opp_power >= my_t)
-                # - and we *don't* kill it (my_p < max_opp_tough)
-                # then this attack is "obviously bad" → skip.
+                # worst case: strongest blocker blocks this attacker
+                # if that blocker both kills us and survives -> skip (suicidal)
                 if max_opp_power >= my_t and my_p < max_opp_tough:
                     continue
-
                 # Otherwise, consider this attacker "acceptable":
-                # it either survives, trades, or at least deals damage.
+                # it either survives, trades, or at least deals damage
                 safe_attackers.append(str(idx))
 
             # If we found safe attackers, use them
             if safe_attackers:
                 return " ".join(safe_attackers)
 
-            # If no attackers seem safe, be conservative: do not attack
+            # no attacker looks safe -> don't attack
             return ""
 
-        # 2) Declare blockers: for now, we never block (Stage 1.5 will add logic)
+        # 2) Declare blockers (baby blocking: only vs lethal)
         if "blockers" in text or "block with" in text:
+            my_creatures = list(player.creatures)
+            if not my_creatures:
+                return ""
+
+            # candidates: untapped creatures
+            blocker_indices = []
+            for i, c in enumerate(my_creatures):
+                status = getattr(c, "status", None)
+                tapped = getattr(status, "tapped", False) if status is not None else False
+                if not tapped:
+                    blocker_indices.append(i)
+
+            if not blocker_indices:
+                return ""
+
+            # estimate incoming damage from attacking creatures
+            opp = player.opponent
+            incoming_damage = 0
+            for c in opp.creatures:
+                status = getattr(c, "status", None)
+                is_attacking = True
+                if status is not None:
+                    # if engine tracks this flag, use it; else assume attacking
+                    is_attacking = getattr(status, "attacking", True)
+                if not is_attacking:
+                    continue
+                power, _ = self._get_power_toughness(c)
+                incoming_damage += power
+
+            # baby rule: only block if incoming damage >= current life
+            if incoming_damage >= player.life:
+                # block with all available creatures (engine will assign specifics)
+                return " ".join(str(i) for i in blocker_indices)
+
+            # otherwise: no blocks
             return ""
 
         # 3) Discard prompts
