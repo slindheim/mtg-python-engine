@@ -1,44 +1,7 @@
 import random
 from MTG import gamesteps
 
-# ---------------------------------------------------------
-# Shared helper functions
-# ---------------------------------------------------------
-
-def approx_cmc(card):
-    """
-    Approximate converted mana cost (CMC) from card.manacost,
-    which is a dict of mana symbol -> count.
-    """
-    cost = getattr(card, "manacost", None)
-    if not cost:
-        return 0
-    try:
-        return sum(cost.values())
-    except Exception:
-        return 0
-
-
-def infer_mana_symbol(card):
-    """
-    Infer a single mana symbol for this card, based on its color.
-
-    For mono-colored cards, this returns 'W', 'U', 'B', 'R', or 'G'.
-    For colorless or missing info, falls back to '1' (generic).
-
-    This makes our mana hack work for any mono-color deck (including blue),
-    without hard-coded if/else chains.
-    """
-    color_char = "1"
-    if hasattr(card, "characteristics"):
-        colors = getattr(card.characteristics, "color", []) or []
-        # colors is typically a list like ['W'], ['G'], ['U', 'R'], etc.
-        if colors:
-            color_char = colors[0]
-    if not color_char:
-        color_char = "1"
-    return color_char
-
+from agents.helpers import *
 
 # ---------------------------------------------------------
 # RandomAgent (Stage 0 / 0.5 baseline)
@@ -140,6 +103,22 @@ class RandomAgent:
                 s["approx_mana_spent"] += cmc
             self._ensure_mana_for(player, card)
             return f"p {idx}"
+
+        # 2.5) Sometimes cast a random non-creature spell (instants/sorceries/enchantments)
+        non_creature_indices = [
+            i for i, c in enumerate(player.hand)
+            if not getattr(c, "is_creature", False)
+        ]
+        if non_creature_indices and random.random() < 0.3:
+            idx = random.choice(non_creature_indices)
+            card = player.hand[idx]
+            role = classify_spell_role(card)
+            # we don't really care what it is; just cast it sometimes
+            self._ensure_mana_for(player, card)
+            # RandomAgent doesn't use _pending_spell_role yet – we rely on
+            # its existing select_choice "random target" behavior.
+            return f"p {idx}"
+
 
         # 3) Default: pass
         if s is not None:

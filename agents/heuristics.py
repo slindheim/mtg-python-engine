@@ -1,42 +1,6 @@
 from MTG import gamesteps
 
-# ---------------------------------------------------------
-# Shared helper functions
-# ---------------------------------------------------------
-
-def approx_cmc(card):
-    """
-    Approximate converted mana cost (CMC) from card.manacost,
-    which is a dict of mana symbol -> count.
-    """
-    cost = getattr(card, "manacost", None)
-    if not cost:
-        return 0
-    try:
-        return sum(cost.values())
-    except Exception:
-        return 0
-
-
-def infer_mana_symbol(card):
-    """
-    Infer a single mana symbol for this card, based on its color.
-
-    For mono-colored cards, this returns 'W', 'U', 'B', 'R', or 'G'.
-    For colorless or missing info, falls back to '1' (generic).
-
-    This makes our mana hack work for any mono-color deck (including blue),
-    without hard-coded if/else chains.
-    """
-    color_char = "1"
-    if hasattr(card, "characteristics"):
-        colors = getattr(card.characteristics, "color", []) or []
-        if colors:
-            color_char = colors[0]
-    if not color_char:
-        color_char = "1"
-    return color_char
-
+from agents.helpers import *
 
 # ---------------------------------------------------------
 # HeuristicAgent (Stage 1: novice heuristics)
