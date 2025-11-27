@@ -40,6 +40,53 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.CREATURE],
         "abilities": [],
     },
+        "Aven Flock": {
+        "mana_cost": "4W",
+        "color": ["W"],
+        "power": 2,
+        "toughness": 3,
+        "text": (
+            "Flying (This creature can't be blocked except by creatures "
+            "with flying or reach.)\n"
+            "{W}: Aven Flock gets +0/+1 until end of turn."
+        ),
+        "subtype": ["Bird", "Soldier"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [static_abilities.StaticAbilities.Flying],
+    },
+
+    "Guardian Lions": {
+        "mana_cost": "4W",
+        "color": ["W"],
+        "power": 1,
+        "toughness": 6,
+        "text": "Vigilance (Attacking doesn't cause this creature to tap.)",
+        "subtype": ["Cat"],
+        "types": [cardtype.CardType.CREATURE],
+        # being safe here: encode vigilance in rules text only
+        "abilities": [],
+    },
+        "Loxodon Convert": {
+        "mana_cost": "3W",
+        "color": ["W"],
+        "power": 4,
+        "toughness": 2,
+        "text": "",  # vanilla
+        "subtype": ["Phyrexian", "Elephant", "Soldier"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [],
+    },
+
+    "Savannah Lions": {
+        "mana_cost": "W",
+        "color": ["W"],
+        "power": 2,
+        "toughness": 1,
+        "text": "",  # vanilla
+        "subtype": ["Cat"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [],
+    },
 
     # placeholder for more simple cards
 }
