@@ -65,6 +65,13 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
         g.players[1].agent = agent1
         players = g.players
 
+    # grab player references BEFORE the game mutates its player list
+    p0 = players[0]
+    p1 = players[1]
+
+    p0.agent = agent0
+    p1.agent = agent1
+
     # 5) Run the game; catch decking as a proper loss
     end_reason = "life"
     try:
@@ -76,12 +83,12 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
         decking_player.opponent.won = True
         end_reason = "decking"
 
-    # 6) Work out winner/loser based on .lost flags
-    p0, p1 = players
+    # 6) Determine winner based on the saved p0/p1 references
+    # (fix: after losing via HP reduction, player be removed from g.players)
     if p0.lost and not p1.lost:
-        winner = 1
+        winner = 1      # player 1 wins
     elif p1.lost and not p0.lost:
-        winner = 0
+        winner = 0      # player 0 wins
     else:
         winner = -1
         if end_reason == "life":
