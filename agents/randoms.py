@@ -140,16 +140,25 @@ class RandomAgent:
         if "blockers" in text or "block with" in text:
             return ""
 
-        # 3) Target selection (once you re-enable instants)
+        # 3) Target selection (for instants and ETB [Enters the Battefield] effects)
         if "choose a target" in text or "select a target" in text:
-            opp = player.opponent
-            opp_creatures = opp.battlefield.filter(filter_func=lambda p: p.is_creature)
+            # collect ALL creatures on the battlefield (ours + opponent's)
+            my_creatures = list(player.battlefield.filter(filter_func=lambda p: p.is_creature))
+            opp_creatures = list(player.opponent.battlefield.filter(filter_func=lambda p: p.is_creature))
+            all_creatures = my_creatures + opp_creatures
 
-            if opp_creatures and random.random() < 0.5:
-                idx = random.randrange(len(opp_creatures))
-                return f"b {idx}"   # target creature on opp battlefield
-            else:
-                return "p 1"       # target opponent
+            if all_creatures:
+                # pick one at random; we assume engine maps "b i" to
+                # "i-th permanent on your side of battlefield" per docs,
+                # but our decks are very simple and Forge Devil can
+                # always target *a* creature we control (including itself).
+                #
+                # To keep it simple & safe for now, just target our own
+                # first creature: index 0 on our battlefield.
+                return "b 0"
+
+            # no creatures anywhere – just press Enter and let the engine handle it
+            return ""
 
         # 4) Discard prompts → discard random hand card
         if "which cards would you like to discard" in text:
