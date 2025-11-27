@@ -44,6 +44,7 @@ class RandomAgent:
             # If anything goes wrong, just skip; engine will reject if we still can't pay
             pass
 
+
     def select_action(self, player, game):
         """
         Return a command string like:
@@ -61,7 +62,23 @@ class RandomAgent:
 
         # Otherwise: pick a random card index in hand and try to play it.
         idx = random.randrange(len(player.hand))
+        card = player.hand[idx]
+
+        # Ensure we actually have enough mana in the pool to cast
+        try:
+            cmc = getattr(card, "manacost", None)
+            if cmc:
+                total = sum(cmc.values())
+            else:
+                total = 0
+            if total > 0:
+                # Again: very rough, just generic mana
+                player.mana.add_str("1" * total)
+        except Exception:
+            pass
+
         return f"p {idx}"
+
 
     def select_choice(self, player, game, prompt_string):
         """
@@ -97,6 +114,7 @@ class RandomAgent:
         # 3) Default: just press Enter (no choice)
         return ""
 
+
 class HeuristicAgent:
     """
     Stage 1: simple rule-based 'novice' agent.
@@ -126,6 +144,7 @@ class HeuristicAgent:
         except Exception:
             return 0
 
+
     def _get_power_toughness(self, card):
         """
         Try to read power/toughness in a way that works both in hand
@@ -146,6 +165,7 @@ class HeuristicAgent:
             toughness = 0
 
         return power, toughness
+
 
     def _approx_available_mana(self, player):
         """
@@ -243,6 +263,7 @@ class HeuristicAgent:
 
         # 3) Nothing useful to do: pass
         return ""
+
 
     def select_choice(self, player, game, prompt_string):
         """
