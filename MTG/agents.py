@@ -82,36 +82,76 @@ class RandomAgent:
 
     def select_choice(self, player, game, prompt_string):
         """
-        Respond to generic prompts like "Choose a target" etc.
-        Very dumb but *valid* answers for this engine.
+        Random baseline agent:
+        - randomly decides attackers
+        - never blocks (stage 0 baseline)
+        - picks random targets
+        - discards random card
         """
 
-        # 1) Target selection (burn spell, pump spell, etc.)
-        if "Choose a target" in prompt_string:
-            # According to the engine docs, get_target_from_user_input
-            # accepts things like:
-            #   'b 2'  -> 2nd permanent on *your* battlefield
-            # For your simple research setup, it's fine to
-            # just always choose the first creature you control if any;
-            # otherwise, aim at opponent player (p 1).
-            #
-            # NOTE: this is heuristic; it's just to avoid infinite prompts.
-            creatures = player.battlefield.filter(filter_func=lambda p: p.is_creature)
-            if creatures:
-                return "b 0"   # first creature on *your* battlefield
+        text = prompt_string.lower()
+
+        # --------------------------------------------------
+        # 1) Declare attackers: choose a random subset
+        # --------------------------------------------------
+        if "attackers" in text or ("attack" in text and "creature" in text):
+            creatures = list(player.creatures)
+            n = len(creatures)
+            if n == 0:
+                return ""
+
+            # choose a random subset: each creature attacks with p=0.5
+            chosen = []
+            for i in range(n):
+                if random.random() < 0.5:
+                    chosen.append(str(i))
+
+            # ensure at least *some* damage occurs occasionally:
+            if not chosen and n > 0 and random.random() < 0.3:
+                chosen = [str(random.randrange(n))]
+
+            return " ".join(chosen)
+
+        # --------------------------------------------------
+        # 2) Declare blockers (baseline 0: no blocks)
+        # --------------------------------------------------
+        if "blockers" in text or "block with" in text:
+            return ""
+
+        # --------------------------------------------------
+        # 3) Target selection (Instant, Sorcery, Buff)
+        # --------------------------------------------------
+        if "choose a target" in text or "select a target" in text:
+            # list opponent creatures
+            opp = player.opponent
+            opp_creatures = opp.battlefield.filter(filter_func=lambda p: p.is_creature)
+
+            # 50% chance target creature, 50% target opponent
+            if opp_creatures and random.random() < 0.5:
+                idx = random.randrange(len(opp_creatures))
+                return f"b {idx}"   # "b X" = opponent battlefield X
             else:
-                # 'p 1' should usually be opponent; if not, engine will reject
-                return "p 1"
+                return "p 1"       # target opponent player
 
-        # 2) Other prompts that ask "Which creature..." etc.
-        if "Which creature" in prompt_string:
-            return "0"
+        # --------------------------------------------------
+        # 4) Discard prompt → discard random card
+        # --------------------------------------------------
+        if "which cards would you like to discard" in text:
+            if len(player.hand) == 0:
+                return ""
+            return str(random.randrange(len(player.hand)))
 
-        if "Which cards would you like to discard" in prompt_string:
-            # discard the first card
-            return "0"
+        # --------------------------------------------------
+        # 5) Fallback for prompts like “Which creature…?”
+        # --------------------------------------------------
+        if "which creature" in text:
+            if len(player.creatures) == 0:
+                return ""
+            return str(random.randrange(len(player.creatures)))
 
-        # 3) Default: just press Enter (no choice)
+        # --------------------------------------------------
+        # 6) Default: press Enter
+        # --------------------------------------------------
         return ""
 
 
