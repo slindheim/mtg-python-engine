@@ -25,6 +25,10 @@ class HeuristicAgent:
       - main_phase_actions
       - main_phase_passes
     """
+    def __init__(self):
+        # stats will be overwritten by research_main, that's fine
+        self.stats = None
+        self._pending_spell_role = None
 
     # ---------- helpers ----------
 
@@ -137,8 +141,75 @@ class HeuristicAgent:
             # ensure we actually have enough mana in the pool
             self._ensure_mana_for(player, best_card)
             return f"p {best_idx}"
+        
+        # 3) If no creature play, consider simple spells (burn / pump / pacifism)
+        #    We only do this in main phases to avoid complexity of combat tricks for now.
+        opp = player.opponent
 
-        # 3) nothing useful to do: pass
+        # First: removal-style spells: Pacifism or burn as removal
+        for i, card in enumerate(player.hand):
+            role = classify_spell_role(card)
+            if role == "pacifism":
+                opp_creatures = list(opp.creatures)
+                if not opp_creatures:
+                    continue
+                # target the largest power creature
+                opp_creatures_sorted = sorted(
+                    opp_creatures,
+                    key=lambda c: self._get_power_toughness(c)[0],  # sort by power
+                    reverse=True,
+                )
+                # if there is at least one creature worth pacifying, cast it
+                self._pending_spell_role = "pacifism"
+                if s is not None:
+                    # count as "spell" for now using approx_mana_spent
+                    cmc = approx_cmc(card)
+                    s["approx_mana_spent"] += cmc
+                self._ensure_mana_for(player, card)
+                return f"p {i}"
+
+        # Second: burn as removal or finisher (Lightning Bolt / Strike)
+        for i, card in enumerate(player.hand):
+            role = classify_spell_role(card)
+            if role == "burn":
+                # try to kill an opposing creature if possible
+                opp_creatures = list(opp.creatures)
+                burn_damage = 3  # both Bolt and Strike deal 3 in our pool
+                killable = [
+                    c for c in opp_creatures
+                    if self._get_power_toughness(c)[1] <= burn_damage
+                ]
+                if killable or opp.life <= burn_damage:
+                    self._pending_spell_role = "burn"
+                    if s is not None:
+                        cmc = approx_cmc(card)
+                        s["approx_mana_spent"] += cmc
+                    self._ensure_mana_for(player, card)
+                    return f"p {i}"
+                # else: hold burn spell for now (could extend later)
+
+        # Third: pump spell (Giant/Titanic Growth) – simple usage:
+        # precombat pump on our biggest creature to increase pressure.
+        for i, card in enumerate(player.hand):
+            role = classify_spell_role(card)
+            if role == "pump":
+                my_creatures = list(player.creatures)
+                if not my_creatures:
+                    continue
+                # target our highest power creature
+                my_sorted = sorted(
+                    my_creatures,
+                    key=lambda c: self._get_power_toughness(c)[0],
+                    reverse=True,
+                )
+                self._pending_spell_role = "pump"
+                if s is not None:
+                    cmc = approx_cmc(card)
+                    s["approx_mana_spent"] += cmc
+                self._ensure_mana_for(player, card)
+                return f"p {i}"
+
+        # 4) Nothing useful to do: pass
         if s is not None:
             s["main_phase_passes"] += 1
         return ""
@@ -157,6 +228,78 @@ class HeuristicAgent:
             * otherwise, no blocks
         """
         text = prompt_string.lower()
+
+                # 0) Handle "Choose a target" for spells we just cast
+        if "choose a target" in text or "select a target" in text:
+            role = getattr(self, "_pending_spell_role", None)
+            opp = player.opponent
+
+            if role == "pacifism":
+                # target the largest power creature the opponent controls
+                opp_creatures = list(opp.creatures)
+                if opp_creatures:
+                    opp_creatures_sorted = sorted(
+                        opp_creatures,
+                        key=lambda c: self._get_power_toughness(c)[0],
+                        reverse=True,
+                    )
+                    target = opp_creatures_sorted[0]
+                    # find its index in opponent's battlefield
+                    idx = opp.creatures.index(target)
+                    self._pending_spell_role = None
+                    # "b N" = battlefield N of the *defending* player (the engine uses this convention)
+                    return f"b {idx}"
+                # no valid targets; clear and pass
+                self._pending_spell_role = None
+                return ""
+
+            if role == "burn":
+                # try to hit a killable creature first
+                burn_damage = 3
+                opp_creatures = list(opp.creatures)
+                killable = [
+                    c for c in opp_creatures
+                    if self._get_power_toughness(c)[1] <= burn_damage
+                ]
+                if killable:
+                    # target the highest-power killable creature
+                    killable_sorted = sorted(
+                        killable,
+                        key=lambda c: self._get_power_toughness(c)[0],
+                        reverse=True,
+                    )
+                    target = killable_sorted[0]
+                    idx = opp.creatures.index(target)
+                    self._pending_spell_role = None
+                    return f"b {idx}"
+
+                # otherwise, go face (opponent player)
+                # usually opponent is player1 if we are player0, but the engine parses "p 1" as opponent.
+                self._pending_spell_role = None
+                return "p 1"
+
+            if role == "pump":
+                # pump our own highest-power creature
+                my_creatures = list(player.creatures)
+                if my_creatures:
+                    my_sorted = sorted(
+                        my_creatures,
+                        key=lambda c: self._get_power_toughness(c)[0],
+                        reverse=True,
+                    )
+                    target = my_sorted[0]
+                    idx = player.creatures.index(target)
+                    self._pending_spell_role = None
+                    # "b N" from our own perspective means our battlefield
+                    return f"b {idx}"
+
+                self._pending_spell_role = None
+                return ""
+
+            # If we don't recognize the spell, just pass
+            self._pending_spell_role = None
+            return ""
+
 
         # 1) Declare attackers
         if "attackers" in text or ("attack" in text and "creature" in text):
