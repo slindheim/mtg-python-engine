@@ -140,8 +140,8 @@ def build_mono_green_deck():
         *["Forest"] * 23,
 
         # Efficient creatures
-        *["Runeclaw Bear"] * 5,
-        *["Centaur Courser"] * 9,
+        *["Runeclaw Bear"] * 4,
+        *["Centaur Courser"] * 8,
 
         # Larger creatures
         *["Charging Rhino"] * 4,
@@ -151,7 +151,7 @@ def build_mono_green_deck():
 
         # Removal / tricks
         # *["Prey Upon"] * 4,        # fight spell
-        # *["Giant Growth"] * 2,
+        *["Giant Growth"] * 2,
     ]
     return deck_name, _cards_from_names(names)
 
@@ -177,8 +177,9 @@ def build_mono_white_deck():
         # Finishers
         *["Serra Angel"] * 2,       # Flying, vigilance
 
-        # Removal (commented)
+        # Removal
         # *["Pacifism"] * 4,
+        # simple, but still aura...
         # *["Smite"] * 2,
     ]
     return deck_name, _cards_from_names(names)
