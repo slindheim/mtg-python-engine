@@ -117,7 +117,7 @@ def build_mono_red_deck():
         *["Fearless Halberdier"] * 2,
 
         # Four-drops
-        *["Krenko's Enforcer"] * 2,  # Intimidate
+        *["Borderland Minotaur"] * 2,
         *["Furnace Whelp"] * 2,      # Flying, simple firebreathing
 
         # Five-drops (small top-end)

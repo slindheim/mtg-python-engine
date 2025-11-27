@@ -187,6 +187,17 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.CREATURE],
         "abilities": [],
     },
+        "Borderland Minotaur": {
+        "mana_cost": "2RR",
+        "color": ["R"],
+        "power": 4,
+        "toughness": 3,
+        "text": "",
+        "subtype": ["Minotaur", "Warrior"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [],
+    },
+
 
 
     # placeholder for more simple cards
