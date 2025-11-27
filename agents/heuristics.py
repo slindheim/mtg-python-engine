@@ -31,7 +31,6 @@ def infer_mana_symbol(card):
     color_char = "1"
     if hasattr(card, "characteristics"):
         colors = getattr(card.characteristics, "color", []) or []
-        # colors is typically a list like ['W'], ['G'], ['U', 'R'], etc.
         if colors:
             color_char = colors[0]
     if not color_char:
@@ -53,7 +52,10 @@ class HeuristicAgent:
     - Then plays the 'best' creature it approximately can afford:
         * prioritize higher converted mana cost (mana efficiency)
         * break ties by higher power, then higher toughness (threat priority)
-    - Otherwise passes.
+    - Combat:
+        * attack with creatures that are not obviously suicidal into the
+          opponent's best blocker (very rough approximation).
+        * no blocking yet (Stage 1.5).
 
     If self.stats is present (dict), we update:
       - land_plays
@@ -62,6 +64,8 @@ class HeuristicAgent:
       - main_phase_actions
       - main_phase_passes
     """
+
+    # ---------- helpers ----------
 
     def _get_power_toughness(self, card):
         """
@@ -87,18 +91,12 @@ class HeuristicAgent:
     def _approx_available_mana(self, player):
         """
         Rough proxy for available mana: count lands on the battlefield.
-
-        This ignores detailed tapping rules and colors, but in our
-        mono-color limited environment it's a reasonable approximation.
         """
         return len(player.lands)
 
     def _ensure_mana_for(self, player, card):
         """
         Very simple mana helper: add enough colored mana to pay this card's CMC.
-
-        We ignore exact color splits and just add CMC copies of a single color
-        symbol inferred from the card. In mono-color decks this is good enough.
         """
         cmc = approx_cmc(card)
         if cmc <= 0:
@@ -110,6 +108,8 @@ class HeuristicAgent:
             player.mana.add_str(mana_str)
         except Exception:
             pass
+
+    # ---------- main phase decisions ----------
 
     def select_action(self, player, game):
         """
@@ -183,25 +183,64 @@ class HeuristicAgent:
             s["main_phase_passes"] += 1
         return ""
 
+    # ---------- combat & choices ----------
+
     def select_choice(self, player, game, prompt_string):
         """
         Respond to generic prompts.
 
-        For Stage 1, we keep it simple:
-        - attack with all our creatures when asked about attackers
-        - never block
-        - basic behavior for discarding
+        Stage 1 combat behavior:
+        - Attack with all creatures if opponent has no blockers.
+        - Otherwise, attack only with creatures that are not obviously
+          suicidal into the opponent's best blocker (very rough worst-case).
+        - Still never block (blocking to be added in Stage 1.5).
         """
         text = prompt_string.lower()
 
-        # 1) Declare attackers: attack with all our creatures
+        # 1) Declare attackers: choose a safe subset
         if "attackers" in text or ("attack" in text and "creature" in text):
-            n = len(player.creatures)
+            my_creatures = list(player.creatures)
+            n = len(my_creatures)
             if n == 0:
                 return ""
-            return " ".join(str(i) for i in range(n))
 
-        # 2) Declare blockers: for now, we never block (very aggressive)
+            opp = player.opponent
+            opp_creatures = list(opp.creatures)
+
+            # If opponent has no blockers → attack with everything
+            if not opp_creatures:
+                return " ".join(str(i) for i in range(n))
+
+            # Compute opponent's "best" blocker (worst-case for us)
+            opp_stats = [self._get_power_toughness(c) for c in opp_creatures]
+            max_opp_power = max(p for (p, t) in opp_stats)
+            max_opp_tough = max(t for (p, t) in opp_stats)
+
+            safe_attackers = []
+
+            for idx, c in enumerate(my_creatures):
+                my_p, my_t = self._get_power_toughness(c)
+
+                # Worst-case: strongest blocker blocks this creature.
+                # If that blocker both:
+                # - can kill us (max_opp_power >= my_t)
+                # - and we *don't* kill it (my_p < max_opp_tough)
+                # then this attack is "obviously bad" → skip.
+                if max_opp_power >= my_t and my_p < max_opp_tough:
+                    continue
+
+                # Otherwise, consider this attacker "acceptable":
+                # it either survives, trades, or at least deals damage.
+                safe_attackers.append(str(idx))
+
+            # If we found safe attackers, use them
+            if safe_attackers:
+                return " ".join(safe_attackers)
+
+            # If no attackers seem safe, be conservative: do not attack
+            return ""
+
+        # 2) Declare blockers: for now, we never block (Stage 1.5 will add logic)
         if "blockers" in text or "block with" in text:
             return ""
 
