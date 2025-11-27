@@ -148,16 +148,16 @@ if __name__ == "__main__":
 #     run_one_game()
 
 
-# future implementation
-#     run_one_game(agent0=HeuristicAgent(), agent1=RandomAgent(), test=False)
-
-
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
         for i in range(num_games):
-            stats = run_one_game(game_id=i, test=False)
+
+            agent0 = RandomAgent()
+            agent1 = HeuristicAgent()  
+
+            stats = run_one_game(game_id=i, agent0=agent0, agent1=agent1, test=False)
             writer.writerow(stats)
 
             # Update counters for console summary
