@@ -87,6 +87,32 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.CREATURE],
         "abilities": [],
     },
+    
+        "Snapping Drake": {
+        "mana_cost": "3U",
+        "color": ["U"],
+        "power": 3,
+        "toughness": 2,
+        "text": "Flying",
+        "subtype": ["Drake"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [static_abilities.StaticAbilities.Flying],
+    },
+
+    "Harbor Serpent": {
+        "mana_cost": "4UU",
+        "color": ["U"],
+        "power": 5,
+        "toughness": 5,
+        "text": (
+            "Islandwalk\n"
+            "Harbor Serpent can't attack unless there are five or more Islands on the battlefield."
+        ),
+        "subtype": ["Serpent"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [static_abilities.StaticAbilities.Islandwalk],
+    },
+
 
     # placeholder for more simple cards
 }
