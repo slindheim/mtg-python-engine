@@ -53,6 +53,7 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
     cards.setup_cards()
 
     # 2) Build decks as lists of Card objects
+    # CHANGE DECKS HERE AS NEEDED
     deck0_name, deck0 = build_mono_green_deck()
     deck1_name, deck1 = build_mono_white_deck()
     decks = [deck0, deck1]
@@ -208,7 +209,7 @@ if __name__ == "__main__":
     draws = 0
 
     # human vs human
-#     run_one_game()
+    # run_one_game()
 
 
     with open(csv_path, "w", newline="") as f:
@@ -216,11 +217,11 @@ if __name__ == "__main__":
         writer.writeheader()
 
         for i in range(num_games):
-
+            # CHANGE AGENTS HERE AS NEEDED
             agent0 = HeuristicAgent()
             agent1 = HeuristicAgent15()  
 
-            stats = run_one_game(game_id=i, agent0=agent0, agent1=agent1, test=False)
+            stats = run_one_game(game_id=i, agent0=agent0, agent1=agent1, test=True)
             writer.writerow(stats)
 
             # Update counters for console summary
