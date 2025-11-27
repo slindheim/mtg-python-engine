@@ -146,7 +146,18 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.CREATURE],
         "abilities": [],  # unblockable is handled in rules text only
     },
-    
+
+        "Giant Growth": {
+        "mana_cost": "G",
+        "color": ["G"],
+        "power": None,          # not a creature
+        "toughness": None,      # not a creature
+        "text": "Target creature gets +3/+3 until end of turn.",
+        "subtype": [],
+        "types": [cardtype.CardType.INSTANT],
+        "abilities": [],
+    },
+
     # placeholder for more simple cards
 }
 
