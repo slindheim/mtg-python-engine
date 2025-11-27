@@ -4,7 +4,7 @@ from agents.randoms import RandomAgent
 from agents.heuristics import HeuristicAgent
 from MTG.exceptions import EmptyLibraryException
 
-from research_decks import build_mono_red_deck, build_mono_green_deck
+from research_decks import build_mono_red_deck, build_mono_green_deck, build_mono_white_deck
 
 import sys
 import inspect
@@ -52,8 +52,8 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
     cards.setup_cards()
 
     # 2) Build decks as lists of Card objects
-    deck0_name, deck0 = build_mono_red_deck()
-    deck1_name, deck1 = build_mono_green_deck()
+    deck0_name, deck0 = build_mono_green_deck()
+    deck1_name, deck1 = build_mono_white_deck()
     decks = [deck0, deck1]
 
     # 3) Create Game with the decks
