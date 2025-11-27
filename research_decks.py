@@ -140,12 +140,11 @@ def build_mono_green_deck():
         *["Forest"] * 23,
 
         # Efficient creatures
-        *["Runeclaw Bear"] * 4,
-        *["Centaur Courser"] * 8,
+        *["Runeclaw Bear"] * 5,
+        *["Centaur Courser"] * 9,
 
         # Larger creatures
         *["Charging Rhino"] * 4,
-        *["Hunters' Courage"] * 2,   # a new simple 4-drop vanilla 4/4
 
         # Top-end
         *["Craw Wurm"] * 2,          # classic 6/4 vanilla

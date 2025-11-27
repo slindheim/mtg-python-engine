@@ -30,6 +30,16 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.CREATURE],
         "abilities": [static_abilities.StaticAbilities.Haste],
     },
+        "Craw Wurm": {
+        "mana_cost": "4GG",
+        "color": ["G"],
+        "power": 6,
+        "toughness": 4,
+        "text": "",                      # vanilla
+        "subtype": ["Wurm"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [],
+    },
 
     # placeholder for more simple cards
 }
