@@ -129,8 +129,11 @@ if __name__ == "__main__":
     results_dir = "results"
     os.makedirs(results_dir, exist_ok=True)
 
+    # Generate timestamp first
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_path = os.path.join(results_dir, f"random_vs_random_{timestamp}.csv")
+
+    # Filename format: <timestamp>_random_vs_heuristic.csv
+    csv_path = os.path.join(results_dir, f"{timestamp}_random_vs_heuristic.csv")
 
     fieldnames = [
         "game_id",
