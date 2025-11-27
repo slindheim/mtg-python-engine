@@ -12,6 +12,20 @@ import csv
 import os
 import datetime
 
+# -----------------------------------------------------------
+# Implement some helper functions (for stats collection)
+# -----------------------------------------------------------
+
+def make_empty_stats():
+    """Per-game stats container for one agent."""
+    return {
+        "land_plays": 0,
+        "creature_casts": 0,
+        "approx_mana_spent": 0,
+        "main_phase_actions": 0,
+        "main_phase_passes": 0,
+    }
+
 
 # -----------------------------------------------------------
 # Run a single game and return a stats dict for logging
@@ -70,6 +84,12 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
     p0 = players[0]
     p1 = players[1]
 
+    # add per-game stats and attach to agents
+    stats0 = make_empty_stats()
+    stats1 = make_empty_stats()
+    agent0.stats = stats0
+    agent1.stats = stats1
+
     p0.agent = agent0
     p1.agent = agent1
 
@@ -115,6 +135,24 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
         "p1_battlefield_creatures": p1_creatures,
     }
 
+    # 8) Merge per-agent stats into game stats (if present)
+    s0 = getattr(agent0, "stats", {})
+    s1 = getattr(agent1, "stats", {})
+
+    stats.update({
+        "p0_land_plays": s0.get("land_plays", 0),
+        "p0_creature_casts": s0.get("creature_casts", 0),
+        "p0_approx_mana_spent": s0.get("approx_mana_spent", 0),
+        "p0_main_phase_actions": s0.get("main_phase_actions", 0),
+        "p0_main_phase_passes": s0.get("main_phase_passes", 0),
+
+        "p1_land_plays": s1.get("land_plays", 0),
+        "p1_creature_casts": s1.get("creature_casts", 0),
+        "p1_approx_mana_spent": s1.get("approx_mana_spent", 0),
+        "p1_main_phase_actions": s1.get("main_phase_actions", 0),
+        "p1_main_phase_passes": s1.get("main_phase_passes", 0),
+    })
+
     return stats
 
 # -----------------------------------------------------------
@@ -149,6 +187,19 @@ if __name__ == "__main__":
         "p1_library_size",
         "p0_battlefield_creatures",
         "p1_battlefield_creatures",
+
+        # new behavior metrics
+        "p0_land_plays",
+        "p0_creature_casts",
+        "p0_approx_mana_spent",
+        "p0_main_phase_actions",
+        "p0_main_phase_passes",
+
+        "p1_land_plays",
+        "p1_creature_casts",
+        "p1_approx_mana_spent",
+        "p1_main_phase_actions",
+        "p1_main_phase_passes",
     ]
 
     wins_p0 = 0

@@ -100,7 +100,7 @@ class HeuristicAgent:
         would type into the console, e.g. "p 3" or "".
         """
 
-        # 0) If it's not this player's turn, or not a main phase, just pass
+        # 0) If it's not this player's turn, or not a main phase, or no hand just pass
         if player is not game.current_player:
             return ""
 
@@ -108,6 +108,13 @@ class HeuristicAgent:
         if phase not in (gamesteps.Phase.PRECOMBAT_MAIN,
                          gamesteps.Phase.POSTCOMBAT_MAIN):
             return ""
+
+        if not player.hand:
+            return ""
+
+        s = getattr(self, "stats", None)
+        if s is not None:
+            s["main_phase_actions"] += 1
 
         # 1) Try to play a land if we still have a land drop available
         if player.landPlayed < player.landPerTurn:
@@ -118,6 +125,8 @@ class HeuristicAgent:
             if land_indices:
                 # Simple policy: play the first land we see
                 idx = land_indices[0]
+                if s is not None:
+                    s["land_plays"] += 1
                 return f"p {idx}"
 
         # 2) Try to play the 'best' creature we can approximately afford
@@ -141,14 +150,20 @@ class HeuristicAgent:
             best_score, best_idx = candidate_indices[0]
             best_card = player.hand[best_idx]
 
-            # Ensure we actually have enough mana in the pool to cast
+            if s is not None:
+                cmc = self._approx_cmc(best_card)
+                s["creature_casts"] += 1
+                s["approx_mana_spent"] += cmc
+
+            # ensure we actually have enough mana in the pool
             self._ensure_mana_for(player, best_card)
 
             return f"p {best_idx}"
 
         # 3) Nothing useful to do: pass
+        if s is not None:
+            s["main_phase_passes"] += 1
         return ""
-
 
     def select_choice(self, player, game, prompt_string):
         """

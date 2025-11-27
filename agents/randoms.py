@@ -76,8 +76,15 @@ class RandomAgent:
         if not player.hand:
             return ""
 
+        # stats handle (may not exist if not in experiment context)
+        s = getattr(self, "stats", None)
+        if s is not None:
+            s["main_phase_actions"] += 1
+
         # With some probability, just do nothing (pure randomness).
         if random.random() < 0.2:
+            if s is not None:
+                s["main_phase_passes"] += 1
             return ""
 
         # 1) Sometimes play a random land, if land drop available.
@@ -88,6 +95,8 @@ class RandomAgent:
             ]
             if land_indices and random.random() < 0.7:
                 idx = random.choice(land_indices)
+                if s is not None:
+                    s["land_plays"] += 1
                 return f"p {idx}"
 
         # 2) Sometimes play a random creature from hand.
@@ -98,12 +107,12 @@ class RandomAgent:
         if creature_indices and random.random() < 0.8:
             idx = random.choice(creature_indices)
             card = player.hand[idx]
-            # stuff enough mana into the pool so the cast can succeed
+            if s is not None:
+                cmc = self._approx_cmc(card)
+                s["creature_casts"] += 1
+                s["approx_mana_spent"] += cmc
             self._ensure_mana_for(player, card)
             return f"p {idx}"
-
-        # 3) Default: pass
-        return ""
 
     # ---------- reply to prompts ----------
 
