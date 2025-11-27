@@ -167,6 +167,26 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.CREATURE],
         "abilities": [],
     },
+        "Goblin Assailant": {
+        "mana_cost": "1R",
+        "color": ["R"],
+        "power": 2,
+        "toughness": 2,
+        "text": "",
+        "subtype": ["Goblin", "Warrior"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [],
+    },
+        "Fearless Halberdier": {
+        "mana_cost": "2R",
+        "color": ["R"],
+        "power": 3,
+        "toughness": 2,
+        "text": "",
+        "subtype": ["Human", "Warrior"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [],
+    },
 
 
     # placeholder for more simple cards

@@ -111,10 +111,10 @@ def build_mono_red_deck():
 
         # Two-drops
         *["Feral Maaka"] * 2,
-        *["Valley Dasher"] * 2,  # Haste 2/2 that must attack
+        *["Goblin Assailant"] * 2,
 
         # Three-drops
-        *["Goblin Roughrider"] * 2,
+        *["Fearless Halberdier"] * 2,
 
         # Four-drops
         *["Krenko's Enforcer"] * 2,  # Intimidate
