@@ -12,6 +12,8 @@ import inspect
 import csv
 import os
 import datetime
+import contextlib
+from io import StringIO
 
 # -----------------------------------------------------------
 # Implement some helper functions (for stats collection)
@@ -33,7 +35,7 @@ def make_empty_stats():
 # -----------------------------------------------------------
 
 
-def run_one_game(game_id, agent0=None, agent1=None, test=False):
+def run_one_game(game_id, agent0=None, agent1=None, test=False, debug_path=None):
     """
     Run a single game between two decks.
 
@@ -47,6 +49,9 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
           - p0_life, p1_life
           - p0_library_size, p1_library_size
           - p0_battlefield_creatures, p1_battlefield_creatures
+
+    If test=True and debug_path is not None, all console output of this game
+    will be captured and appended to the given debug file.
     """
     
     # 1) Load and parse card definitions
@@ -97,14 +102,35 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
 
     # 5) Run the game; catch decking as a proper loss
     end_reason = "life"
-    try:
-        g.run_game()
-    except EmptyLibraryException:
-        decking_player = g.current_player
-        print(f"{decking_player.name} tried to draw from an empty library – loses by decking.")
-        decking_player.lose()
-        decking_player.opponent.won = True
-        end_reason = "decking"
+
+    # capture console output to debug file when test=True ---
+    if test and debug_path is not None:
+        buffer = StringIO()
+        with contextlib.redirect_stdout(buffer):
+            try:
+                g.run_game()
+            except EmptyLibraryException:
+                decking_player = g.current_player
+                print(f"{decking_player.name} tried to draw from an empty library – loses by decking.")
+                decking_player.lose()
+                decking_player.opponent.won = True
+                end_reason = "decking"
+        # write captured output to debug file
+        with open(debug_path, "a", encoding="utf-8") as dbg:
+            dbg.write(f"=== Game {game_id} ===\n")
+            dbg.write(buffer.getvalue())
+            dbg.write("\n\n")
+    else:
+        # normal behavior: print to console
+
+        try:
+            g.run_game()
+        except EmptyLibraryException:
+            decking_player = g.current_player
+            print(f"{decking_player.name} tried to draw from an empty library – loses by decking.")
+            decking_player.lose()
+            decking_player.opponent.won = True
+            end_reason = "decking"
 
     # 6) Determine winner based on the saved p0/p1 references
     # (fix: after losing via HP reduction, player be removed from g.players)
@@ -169,11 +195,18 @@ if __name__ == "__main__":
     results_dir = "results"
     os.makedirs(results_dir, exist_ok=True)
 
+    # Create debug directory
+    debug_dir = "debug"
+    os.makedirs(debug_dir, exist_ok=True)
+
     # Generate timestamp first
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # Filename format: <timestamp>_random_vs_heuristic.csv
+    # Filename stats format: <timestamp>_random_vs_heuristic.csv
     csv_path = os.path.join(results_dir, f"{timestamp}_random_vs_heuristic.csv")
+
+    # Filename debug format: <timestamp>_debug.txt
+    debug_path = os.path.join(debug_dir, f"{timestamp}_debug.txt")
 
     fieldnames = [
         "game_id",
@@ -221,7 +254,13 @@ if __name__ == "__main__":
             agent0 = HeuristicAgent()
             agent1 = HeuristicAgent15()  
 
-            stats = run_one_game(game_id=i, agent0=agent0, agent1=agent1, test=True)
+            stats = run_one_game(
+                game_id=i,
+                agent0=agent0,
+                agent1=agent1,
+                test=True,          # debugging mode
+                debug_path=debug_path
+            )
             writer.writerow(stats)
 
             # Update counters for console summary
