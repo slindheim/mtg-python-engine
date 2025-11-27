@@ -110,7 +110,7 @@ def build_mono_red_deck():
         *["Raging Goblin"] * 2,  # Haste, simple
 
         # Two-drops
-        *["Borderland Marauder"] * 2,
+        *["Feral Maaka"] * 2,
         *["Valley Dasher"] * 2,  # Haste 2/2 that must attack
 
         # Three-drops
@@ -126,7 +126,7 @@ def build_mono_red_deck():
         # Burn
         *["Lightning Bolt"] * 4,
         *["Lightning Strike"] * 4,
-    ]
+    ]   # Bedeck
     return deck_name, _cards_from_names(names)
 
 
@@ -181,6 +181,7 @@ def build_mono_white_deck():
         # *["Pacifism"] * 4,
         # simple, but still aura...
         # *["Smite"] * 2,
+        # Reprieve?
     ]
     return deck_name, _cards_from_names(names)
 

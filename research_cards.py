@@ -157,6 +157,17 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.INSTANT],
         "abilities": [],
     },
+        "Feral Maaka": {
+        "mana_cost": "1R",
+        "color": ["R"],
+        "power": 2,
+        "toughness": 2,
+        "text": "",
+        "subtype": ["Cat"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [],
+    },
+
 
     # placeholder for more simple cards
 }
