@@ -265,6 +265,12 @@ class Player():
                             print("Cannot target\n")
                         elif not can_pay:
                             print("Cannot pay mana costs\n")
+                        
+                        # IMPORTANT:
+                        # If it is an agent, do NOT keep trying the same
+                        # illegal action forever. Treat this as "pass" for now.
+                        if self.agent is not None:
+                            answer = ""
 
                 # activate ability from battlefield -- 'a 3_1' plays 2nd (index starts at 0) ability from 3rd permanent
                 # 'a 3' playrs 1st (default) ability of the 3rd permanent
