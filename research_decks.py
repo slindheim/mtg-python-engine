@@ -89,7 +89,8 @@ def build_mono_red_deck():
 
         # 2-drops / small dudes
         *["Borderland Marauder"] * 4,
-        *["Forge Devil"] * 2,
+        # no Enters the Battlefield [ETB] effects -for now
+        # *["Forge Devil"] * 2,
 
         # 3-drops
         *["Goblin Roughrider"] * 4,
