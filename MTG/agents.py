@@ -9,6 +9,41 @@ class RandomAgent:
     that Player.get_action() already understands.
     """
 
+    def _ensures_mana_for(self, player, card):
+        """
+        Very simple mana helper: add enough colored mana to pay this card's CMC.
+
+        We ignore exact color requirements (fine in mono-color) and just dump
+        CMC many mana symbols into the pool.
+        """
+        cost = getattr(card, "manacost", None)
+        if not cost:
+            return
+
+        try:
+            cmc = sum(cost.values())
+        except Exception:
+            return
+
+        if cmc <= 0:
+            return
+
+        # Try to guess a color: R or G from characteristics, else generic
+        color_char = "1"
+        if hasattr(card, "characteristics"):
+            colors = getattr(card.characteristics, "color", []) or []
+            if "R" in colors:
+                color_char = "R"
+            elif "G" in colors:
+                color_char = "G"
+
+        mana_str = color_char * cmc   # e.g. "RRR" or "GG"
+        try:
+            player.mana.add_str(mana_str)
+        except Exception:
+            # If anything goes wrong, just skip; engine will reject if we still can't pay
+            pass
+
     def select_action(self, player, game):
         """
         Return a command string like:
