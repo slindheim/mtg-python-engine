@@ -1,5 +1,48 @@
 from MTG import gamesteps
 
+# ---------------------------------------------------------
+# Shared helper functions
+# ---------------------------------------------------------
+
+def approx_cmc(card):
+    """
+    Approximate converted mana cost (CMC) from card.manacost,
+    which is a dict of mana symbol -> count.
+    """
+    cost = getattr(card, "manacost", None)
+    if not cost:
+        return 0
+    try:
+        return sum(cost.values())
+    except Exception:
+        return 0
+
+
+def infer_mana_symbol(card):
+    """
+    Infer a single mana symbol for this card, based on its color.
+
+    For mono-colored cards, this returns 'W', 'U', 'B', 'R', or 'G'.
+    For colorless or missing info, falls back to '1' (generic).
+
+    This makes our mana hack work for any mono-color deck (including blue),
+    without hard-coded if/else chains.
+    """
+    color_char = "1"
+    if hasattr(card, "characteristics"):
+        colors = getattr(card.characteristics, "color", []) or []
+        # colors is typically a list like ['W'], ['G'], ['U', 'R'], etc.
+        if colors:
+            color_char = colors[0]
+    if not color_char:
+        color_char = "1"
+    return color_char
+
+
+# ---------------------------------------------------------
+# HeuristicAgent (Stage 1: novice heuristics)
+# ---------------------------------------------------------
+
 class HeuristicAgent:
     """
     Stage 1: simple rule-based 'novice' agent.
@@ -11,24 +54,14 @@ class HeuristicAgent:
         * prioritize higher converted mana cost (mana efficiency)
         * break ties by higher power, then higher toughness (threat priority)
     - Otherwise passes.
+
+    If self.stats is present (dict), we update:
+      - land_plays
+      - creature_casts
+      - approx_mana_spent
+      - main_phase_actions
+      - main_phase_passes
     """
-
-    def _approx_cmc(self, card):
-        """
-        Approximate converted mana cost (CMC) from card.manacost,
-        which is a dict of mana symbol -> count.
-
-        This is a rough heuristic: we ignore color specifics and just
-        sum all symbols.
-        """
-        cost = getattr(card, "manacost", None)
-        if not cost:
-            return 0
-        try:
-            return sum(cost.values())
-        except Exception:
-            return 0
-
 
     def _get_power_toughness(self, card):
         """
@@ -51,43 +84,28 @@ class HeuristicAgent:
 
         return power, toughness
 
-
     def _approx_available_mana(self, player):
         """
-        Very rough proxy for available mana:
-        just count lands on the battlefield.
+        Rough proxy for available mana: count lands on the battlefield.
 
-        This ignores summoning sickness on lands and doesn't model
-        colors exactly, but in our mono-color, creatures-only setting
-        it's a reasonable approximation for 'can I probably cast this?'.
+        This ignores detailed tapping rules and colors, but in our
+        mono-color limited environment it's a reasonable approximation.
         """
         return len(player.lands)
-    
 
     def _ensure_mana_for(self, player, card):
         """
         Very simple mana helper: add enough colored mana to pay this card's CMC.
 
-        We ignore exact color splits and just add CMC copies of one color symbol.
-        In a mono-color deck, this is usually sufficient for paying costs.
+        We ignore exact color splits and just add CMC copies of a single color
+        symbol inferred from the card. In mono-color decks this is good enough.
         """
-        cmc = self._approx_cmc(card)
+        cmc = approx_cmc(card)
         if cmc <= 0:
             return
 
-        # Try to infer color from card.characteristics.color
-        color_char = "1"
-        if hasattr(card, "characteristics"):
-            colors = getattr(card.characteristics, "color", []) or []
-            # colors might be a list like ['W'] or ['G', 'U']
-            if colors:
-                # take the first color symbol (e.g. 'W', 'G', 'R', 'U', 'B')
-                color_char = colors[0]
-        # Fallback: generic, if no color info is present
-        if not color_char:
-            color_char = "1"
-
-        mana_str = color_char * cmc   # e.g. "WWW" or "GG"
+        color_char = infer_mana_symbol(card)
+        mana_str = color_char * cmc   # e.g. "WWW" or "UUU"
         try:
             player.mana.add_str(mana_str)
         except Exception:
@@ -101,7 +119,7 @@ class HeuristicAgent:
         would type into the console, e.g. "p 3" or "".
         """
 
-        # 0) If it's not this player's turn, or not a main phase, or no hand just pass
+        # Not our turn? pass
         if player is not game.current_player:
             return ""
 
@@ -124,7 +142,6 @@ class HeuristicAgent:
                 if getattr(c, "is_land", False)
             ]
             if land_indices:
-                # Simple policy: play the first land we see
                 idx = land_indices[0]
                 if s is not None:
                     s["land_plays"] += 1
@@ -138,7 +155,7 @@ class HeuristicAgent:
             if not getattr(card, "is_creature", False):
                 continue
 
-            cmc = self._approx_cmc(card)
+            cmc = approx_cmc(card)
             # Basic affordability check: cost <= number of lands
             if cmc <= approx_mana:
                 power, toughness = self._get_power_toughness(card)
@@ -152,7 +169,7 @@ class HeuristicAgent:
             best_card = player.hand[best_idx]
 
             if s is not None:
-                cmc = self._approx_cmc(best_card)
+                cmc = approx_cmc(best_card)
                 s["creature_casts"] += 1
                 s["approx_mana_spent"] += cmc
 
@@ -170,10 +187,6 @@ class HeuristicAgent:
         """
         Respond to generic prompts.
 
-        We try to detect:
-        - attacker selection prompts
-        - (later) blocker / discard prompts
-
         For Stage 1, we keep it simple:
         - attack with all our creatures when asked about attackers
         - never block
@@ -182,23 +195,20 @@ class HeuristicAgent:
         text = prompt_string.lower()
 
         # 1) Declare attackers: attack with all our creatures
-        # The exact wording depends on the engine, but common patterns
-        # include "attackers", "attack with", "creatures that can attack".
         if "attackers" in text or ("attack" in text and "creature" in text):
-            # Attack with all creatures we control (indices 0..n-1).
             n = len(player.creatures)
             if n == 0:
                 return ""
-            # e.g. "0 1 2 3"
             return " ".join(str(i) for i in range(n))
 
         # 2) Declare blockers: for now, we never block (very aggressive)
         if "blockers" in text or "block with" in text:
-            return ""  # no blocks
+            return ""
 
         # 3) Discard prompts
         if "which cards would you like to discard" in text:
-            # Discard the first card by index
+            if len(player.hand) == 0:
+                return ""
             return "0"
 
         if "which creature" in text:
@@ -206,16 +216,3 @@ class HeuristicAgent:
 
         # 4) Default: press Enter / no choice
         return ""
-    
-# Heuristiken abbilden - siehe Notes 
-# relativ simpel mal über Regeln
-# ob ma das in einem Bauma abbilden kann
-# priorität bedenken
-# keine klare mini.max trennung - pass
-# diese ausprobieren & nach Metriken evaluieren
-# einlesen python präsente agenten die einfach implementiert werden können (Monte Carlo..)
-# diese implementieren, ausprobieren & nach Metriken evaluieren
-# noch nix RI, evtl Kleinigkeit nachschieben
-# natürlich nicht mit den Heuristiken, die der Agent nutzt vergleichen beim Bewerten
-# zwei bissl bessere als random, die gegeneinander antreten
-# relative Bewertung der zwei Agenten mit Heuristiken

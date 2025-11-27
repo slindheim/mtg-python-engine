@@ -1,6 +1,48 @@
 import random
 from MTG import gamesteps
 
+# ---------------------------------------------------------
+# Shared helper functions
+# ---------------------------------------------------------
+
+def approx_cmc(card):
+    """
+    Approximate converted mana cost (CMC) from card.manacost,
+    which is a dict of mana symbol -> count.
+    """
+    cost = getattr(card, "manacost", None)
+    if not cost:
+        return 0
+    try:
+        return sum(cost.values())
+    except Exception:
+        return 0
+
+
+def infer_mana_symbol(card):
+    """
+    Infer a single mana symbol for this card, based on its color.
+
+    For mono-colored cards, this returns 'W', 'U', 'B', 'R', or 'G'.
+    For colorless or missing info, falls back to '1' (generic).
+
+    This makes our mana hack work for any mono-color deck (including blue),
+    without hard-coded if/else chains.
+    """
+    color_char = "1"
+    if hasattr(card, "characteristics"):
+        colors = getattr(card.characteristics, "color", []) or []
+        # colors is typically a list like ['W'], ['G'], ['U', 'R'], etc.
+        if colors:
+            color_char = colors[0]
+    if not color_char:
+        color_char = "1"
+    return color_char
+
+
+# ---------------------------------------------------------
+# RandomAgent (Stage 0 / 0.5 baseline)
+# ---------------------------------------------------------
 
 class RandomAgent:
     """
@@ -13,40 +55,33 @@ class RandomAgent:
     - Otherwise passes.
     - Combat / other choices handled by select_choice (random-ish attackers,
       no blocks, random discards / targets).
+
+    If self.stats is present (dict), we update:
+      - land_plays
+      - creature_casts
+      - approx_mana_spent
+      - main_phase_actions
+      - main_phase_passes
     """
 
-    # ---------- helpers ----------
-
-    def _approx_cmc(self, card):
-        cost = getattr(card, "manacost", None)
-        if not cost:
-            return 0
-        try:
-            return sum(cost.values())
-        except Exception:
-            return 0
-
     def _ensure_mana_for(self, player, card):
-        cmc = self._approx_cmc(card)
+        """
+        Very simple mana helper: add enough colored mana to pay this card's CMC.
+
+        We ignore exact color splits and just add CMC copies of a single color
+        symbol inferred from the card. In mono-color decks this is good enough.
+        """
+        cmc = approx_cmc(card)
         if cmc <= 0:
             return
 
-        color_char = "1"
-        if hasattr(card, "characteristics"):
-            colors = getattr(card.characteristics, "color", []) or []
-            if colors:
-                color_char = colors[0]
-        if not color_char:
-            color_char = "1"
-
-        mana_str = color_char * cmc
+        color_char = infer_mana_symbol(card)
+        mana_str = color_char * cmc   # e.g. "WWW" or "UUU"
         try:
             player.mana.add_str(mana_str)
         except Exception:
+            # if this fails, engine will still reject the cast, that's fine
             pass
-
-
-    # ---------- main action decision ----------
 
     def select_action(self, player, game):
         """
@@ -69,7 +104,6 @@ class RandomAgent:
         if not player.hand:
             return ""
 
-        # stats handle (may not exist if not in experiment context)
         s = getattr(self, "stats", None)
         if s is not None:
             s["main_phase_actions"] += 1
@@ -101,13 +135,16 @@ class RandomAgent:
             idx = random.choice(creature_indices)
             card = player.hand[idx]
             if s is not None:
-                cmc = self._approx_cmc(card)
+                cmc = approx_cmc(card)
                 s["creature_casts"] += 1
                 s["approx_mana_spent"] += cmc
             self._ensure_mana_for(player, card)
             return f"p {idx}"
 
-    # ---------- reply to prompts ----------
+        # 3) Default: pass
+        if s is not None:
+            s["main_phase_passes"] += 1
+        return ""
 
     def select_choice(self, player, game, prompt_string):
         """
@@ -142,25 +179,16 @@ class RandomAgent:
         if "blockers" in text or "block with" in text:
             return ""
 
-        # 3) Target selection (for instants and ETB [Enters the Battefield] effects)
+        # 3) Target selection (once you re-enable instants)
         if "choose a target" in text or "select a target" in text:
-            # collect ALL creatures on the battlefield (ours + opponent's)
-            my_creatures = list(player.battlefield.filter(filter_func=lambda p: p.is_creature))
-            opp_creatures = list(player.opponent.battlefield.filter(filter_func=lambda p: p.is_creature))
-            all_creatures = my_creatures + opp_creatures
+            opp = player.opponent
+            opp_creatures = opp.battlefield.filter(filter_func=lambda p: p.is_creature)
 
-            if all_creatures:
-                # pick one at random; we assume engine maps "b i" to
-                # "i-th permanent on your side of battlefield" per docs,
-                # but our decks are very simple and Forge Devil can
-                # always target *a* creature we control (including itself).
-                #
-                # To keep it simple & safe for now, just target our own
-                # first creature: index 0 on our battlefield.
-                return "b 0"
-
-            # no creatures anywhere – just press Enter and let the engine handle it
-            return ""
+            if opp_creatures and random.random() < 0.5:
+                idx = random.randrange(len(opp_creatures))
+                return f"b {idx}"   # target creature on opp battlefield
+            else:
+                return "p 1"       # target opponent
 
         # 4) Discard prompts → discard random hand card
         if "which cards would you like to discard" in text:
