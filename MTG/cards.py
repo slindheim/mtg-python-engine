@@ -5,7 +5,7 @@ import re
 from collections import namedtuple
 
 from MTG.parsedcards import *
-from MTG.exceptions import DecklistFormatException, CardNotImplementedException
+from MTG.exceptions import DeckListFormatException, CardNotImplementedException
 from MTG import abilities
 from MTG import triggers
 from MTG import mana
@@ -78,7 +78,7 @@ def read_deck(filename):
                         pass
                         # print("card {} does not exist\n".format(line[i+1:]))
             except:
-                raise DecklistFormatException
+                raise DeckListFormatException
 
     return deck
 
