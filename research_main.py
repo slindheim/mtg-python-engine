@@ -123,7 +123,7 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False):
 
 
 if __name__ == "__main__":
-    num_games = 20
+    num_games = 20 # counter
 
     # Create results directory
     results_dir = "results"
