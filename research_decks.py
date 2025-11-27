@@ -82,27 +82,29 @@ def _cards_from_names(names):
 # MONO RED AGGRO — *only confirmed-existing cards*
 # -----------------------------------------------------------
 def build_mono_red_deck():
-    deck_name = "mono_red_creatures"
+    deck_name = "mono_red_aggro"
     names = [
-        # 16 Mountains
-        *["Mountain"] * 16,
+        # Lands
+        *["Mountain"] * 20,
 
-        # 2-drops / small dudes
+        # One-drops
+        *["Raging Goblin"] * 4,  # Haste, simple
+
+        # Two-drops
         *["Borderland Marauder"] * 4,
-        # no Enters the Battlefield [ETB] effects -for now
-        # *["Forge Devil"] * 2,
+        *["Valley Dasher"] * 4,  # Haste 2/2 that must attack
 
-        # 3-drops
+        # Three-drops
         *["Goblin Roughrider"] * 4,
 
-        # 4-drops
-        *["Krenko's Enforcer"] * 2,
-        *["Furnace Whelp"] * 2,
+        # Four-drops
+        *["Krenko's Enforcer"] * 2,  # Intimidate
+        *["Furnace Whelp"] * 2,      # Flying, simple firebreathing
 
-        # 5-drops
-        *["Thundering Giant"] * 2,
+        # Five-drops (small top-end)
+        *["Thundering Giant"] * 2,   # Haste 4/4
 
-        # Burn (instants)
+        # Burn
         # *["Lightning Bolt"] * 4,
         # *["Lightning Strike"] * 4,
     ]
@@ -113,20 +115,78 @@ def build_mono_red_deck():
 # Mono-Green Midrange (big dumb creatures + one combat trick)
 # -------------------------------------------------------------------
 def build_mono_green_deck():
-    deck_name = "mono_green_creatures"
+    deck_name = "mono_green_midrange"
     names = [
-        # 16 Forests
-        *["Forest"] * 16,
+        # Lands
+        *["Forest"] * 23,
 
-        # Vanilla creatures (we already know these exist for you)
-        *["Runeclaw Bear"] * 1,
+        # Efficient creatures
+        *["Runeclaw Bear"] * 4,
         *["Centaur Courser"] * 8,
 
-        # Simple combat trick
-        # *["Titanic Growth"] * 4,
+        # Larger creatures
+        *["Charging Rhino"] * 4,
+        *["Hunters' Courage"] * 2,   # a new simple 4-drop vanilla 4/4
 
-        # Bigger creatures
-        *["Charging Rhino"] * 2,
+        # Top-end
+        *["Craw Wurm"] * 2,          # classic 6/4 vanilla
+
+        # Removal / tricks
+        # *["Prey Upon"] * 4,        # fight spell
+        # *["Giant Growth"] * 2,
     ]
     return deck_name, _cards_from_names(names)
 
+
+# -------------------------------------------------------------------
+# Mono-White Control-Lite (one big finisher, stabilizers, wide board creation but no tokens)
+# -------------------------------------------------------------------
+def build_mono_white_deck():
+    deck_name = "mono_white_control"
+    names = [
+        *["Plains"] * 24,
+
+        # Early blockers
+        *["Savannah Lions"] * 4,
+        *["Loxodon Convert"] * 4,   # vanilla 3/3 for 3
+
+        # Flyers (defensive or offensive)
+        *["Aven Flock"] * 4,        # Flying, simple pump ability
+
+        # Midgame bodies
+        *["Guardian Lions"] * 4,    # Vigilance 1/6 (simple board stabilizer)
+
+        # Finishers
+        *["Serra Angel"] * 2,       # Flying, vigilance
+
+        # Removal (commented)
+        # *["Pacifism"] * 4,
+        # *["Smite"] * 2,
+    ]
+    return deck_name, _cards_from_names(names)
+
+
+
+# -------------------------------------------------------------------
+# Mono-Blue Tempo-Light Low Complex (no looting/scry/bounce, evasive creatures + counterspell)
+# -------------------------------------------------------------------
+def build_mono_blue_deck():
+    deck_name = "mono_blue_tempo"
+    names = [
+        *["Island"] * 22,
+
+        # Evasive creatures
+        *["Wind Drake"] * 4,
+        *["Phantom Warrior"] * 4,    # Unblockable, simple
+        *["Aven Fisher"] * 4,        # Flying
+
+        # Larger flyers
+        *["Snapping Drake"] * 4,
+
+        # Big but simple
+        *["Harbor Serpent"] * 2,     # Islandwalk, simple restriction
+
+        # Interaction (commented)
+        # *["Cancel"] * 2,
+    ]
+    return deck_name, _cards_from_names(names)
