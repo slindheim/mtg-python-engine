@@ -27,31 +27,24 @@ class RandomAgent:
             return 0
 
     def _ensure_mana_for(self, player, card):
-        """
-        Very simple mana helper: add enough colored mana to pay this card's CMC.
-
-        We ignore exact color requirements and just dump CMC-many mana symbols
-        into the pool. In mono-color decks this is good enough.
-        """
         cmc = self._approx_cmc(card)
         if cmc <= 0:
             return
 
-        # guess a sensible color: try R or G from characteristics
         color_char = "1"
         if hasattr(card, "characteristics"):
             colors = getattr(card.characteristics, "color", []) or []
-            if "R" in colors:
-                color_char = "R"
-            elif "G" in colors:
-                color_char = "G"
+            if colors:
+                color_char = colors[0]
+        if not color_char:
+            color_char = "1"
 
-        mana_str = color_char * cmc   # e.g. "RRR" or "GG"
+        mana_str = color_char * cmc
         try:
             player.mana.add_str(mana_str)
         except Exception:
-            # if this fails, engine will still reject the cast, that's fine
             pass
+
 
     # ---------- main action decision ----------
 

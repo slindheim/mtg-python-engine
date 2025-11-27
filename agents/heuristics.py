@@ -68,29 +68,30 @@ class HeuristicAgent:
         """
         Very simple mana helper: add enough colored mana to pay this card's CMC.
 
-        We ignore exact color requirements (fine in mono-color) and just dump
-        CMC many mana symbols into the pool.
+        We ignore exact color splits and just add CMC copies of one color symbol.
+        In a mono-color deck, this is usually sufficient for paying costs.
         """
         cmc = self._approx_cmc(card)
         if cmc <= 0:
             return
 
-        # Try to guess a color: R or G from characteristics, else generic
+        # Try to infer color from card.characteristics.color
         color_char = "1"
         if hasattr(card, "characteristics"):
             colors = getattr(card.characteristics, "color", []) or []
-            if "R" in colors:
-                color_char = "R"
-            elif "G" in colors:
-                color_char = "G"
+            # colors might be a list like ['W'] or ['G', 'U']
+            if colors:
+                # take the first color symbol (e.g. 'W', 'G', 'R', 'U', 'B')
+                color_char = colors[0]
+        # Fallback: generic, if no color info is present
+        if not color_char:
+            color_char = "1"
 
-        mana_str = color_char * cmc   # e.g. "RRR" or "GG"
+        mana_str = color_char * cmc   # e.g. "WWW" or "GG"
         try:
             player.mana.add_str(mana_str)
         except Exception:
-            # If anything goes wrong, just skip; engine will reject if we still can't pay
             pass
-
 
     def select_action(self, player, game):
         """
