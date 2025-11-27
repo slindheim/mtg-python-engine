@@ -14,7 +14,8 @@ from MTG import combat
 from MTG import triggers
 from MTG.exceptions import *
 
-from MTG.agents import RandomAgent
+from agents.randoms import RandomAgent
+from agents.heuristics import HeuristicAgent
 
 
 class Game(object):

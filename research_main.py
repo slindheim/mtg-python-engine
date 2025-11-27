@@ -1,6 +1,7 @@
 from MTG import game, cards
 from MTG import card as card_mod
-from MTG.agents import RandomAgent, HeuristicAgent
+from agents.randoms import RandomAgent
+from agents.heuristics import HeuristicAgent
 from MTG.exceptions import EmptyLibraryException
 
 from research_decks import build_mono_red_deck, build_mono_green_deck
