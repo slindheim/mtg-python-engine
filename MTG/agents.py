@@ -1,3 +1,5 @@
+from MTG import gamesteps
+
 import random
 
 
@@ -60,7 +62,136 @@ class RandomAgent:
         # 3) Default: just press Enter (no choice)
         return ""
 
+class HeuristicAgent:
+    """
+    Stage 1: simple rule-based 'novice' agent.
 
+    Heuristics:
+    - Only acts on its own main phases.
+    - Plays a land if possible (one per turn).
+    - Then plays the 'best' creature it approximately can afford:
+        * prioritize higher converted mana cost (mana efficiency)
+        * break ties by higher power, then higher toughness (threat priority)
+    - Otherwise passes.
+    """
+
+    def _approx_cmc(self, card):
+        """
+        Approximate converted mana cost (CMC) from card.manacost,
+        which is a dict of mana symbol -> count.
+
+        This is a rough heuristic: we ignore color specifics and just
+        sum all symbols.
+        """
+        cost = getattr(card, "manacost", None)
+        if not cost:
+            return 0
+        try:
+            return sum(cost.values())
+        except Exception:
+            return 0
+
+    def _get_power_toughness(self, card):
+        """
+        Try to read power/toughness in a way that works both in hand
+        and on the battlefield.
+        """
+        power = getattr(card, "power", None)
+        toughness = getattr(card, "toughness", None)
+
+        # Fallback to characteristics if needed
+        if power is None and hasattr(card, "characteristics"):
+            power = getattr(card.characteristics, "power", 0)
+        if toughness is None and hasattr(card, "characteristics"):
+            toughness = getattr(card.characteristics, "toughness", 0)
+
+        if power is None:
+            power = 0
+        if toughness is None:
+            toughness = 0
+
+        return power, toughness
+
+    def _approx_available_mana(self, player):
+        """
+        Very rough proxy for available mana:
+        just count lands on the battlefield.
+
+        This ignores summoning sickness on lands and doesn't model
+        colors exactly, but in our mono-color, creatures-only setting
+        it's a reasonable approximation for 'can I probably cast this?'.
+        """
+        return len(player.lands)
+
+    def select_action(self, player, game):
+        """
+        Decide on an action given the current game state.
+
+        Interface is text-based: we return the same strings a human
+        would type into the console, e.g. "p 3" or "".
+        """
+
+        # 0) If it's not this player's turn, or not a main phase, just pass
+        if player is not game.current_player:
+            return ""
+
+        phase = game.step.phase
+        if phase not in (gamesteps.Phase.PRECOMBAT_MAIN,
+                         gamesteps.Phase.POSTCOMBAT_MAIN):
+            return ""
+
+        # 1) Try to play a land if we still have a land drop available
+        if player.landPlayed < player.landPerTurn:
+            land_indices = [
+                i for i, c in enumerate(player.hand)
+                if getattr(c, "is_land", False)
+            ]
+            if land_indices:
+                # Simple policy: play the first land we see
+                idx = land_indices[0]
+                return f"p {idx}"
+
+        # 2) Try to play the 'best' creature we can approximately afford
+        approx_mana = self._approx_available_mana(player)
+
+        candidate_indices = []
+        for i, card in enumerate(player.hand):
+            if not getattr(card, "is_creature", False):
+                continue
+
+            cmc = self._approx_cmc(card)
+            # Basic affordability check: cost <= number of lands
+            if cmc <= approx_mana:
+                power, toughness = self._get_power_toughness(card)
+                # Higher CMC first, then power, then toughness
+                score = (100 * cmc) + (10 * power) + toughness
+                candidate_indices.append((score, i))
+
+        if candidate_indices:
+            # Pick the highest scoring candidate
+            candidate_indices.sort(reverse=True)
+            best_score, best_idx = candidate_indices[0]
+            return f"p {best_idx}"
+
+        # 3) Nothing useful to do: pass
+        return ""
+
+    def select_choice(self, player, game, prompt_string):
+        """
+        Respond to generic prompts.
+
+        In our current environment (no instants / no targeting),
+        we only occasionally see discard-like prompts.
+        """
+        if "Which cards would you like to discard" in prompt_string:
+            # Discard the 'worst' card: for now, just index 0
+            return "0"
+
+        if "Which creature" in prompt_string:
+            return "0"
+
+        # Default: no choice / press Enter
+        return ""
 
 # Heuristiken abbilden - siehe Notes 
 # relativ simpel mal über Regeln
