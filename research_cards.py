@@ -112,7 +112,19 @@ SIMPLE_CARDS = {
         "types": [cardtype.CardType.CREATURE],
         "abilities": [static_abilities.StaticAbilities.Islandwalk],
     },
-
+        "Aven Fisher": {
+        "mana_cost": "3U",
+        "color": ["U"],
+        "power": 2,
+        "toughness": 2,
+        "text": (
+            "Flying\n"
+            "When Aven Fisher dies, draw a card."
+        ),
+        "subtype": ["Bird", "Soldier"],
+        "types": [cardtype.CardType.CREATURE],
+        "abilities": [static_abilities.StaticAbilities.Flying],
+    },
 
     # placeholder for more simple cards
 }
