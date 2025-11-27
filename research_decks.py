@@ -4,6 +4,8 @@ from MTG import card as card_mod
 import sys
 import inspect
 
+from research_cards import SIMPLE_CARDS, SimpleCard
+
 
 # -----------------------------------------------------------
 # Helpers to construct card objects from names
@@ -40,25 +42,42 @@ def _cards_from_names(names):
     """
     Convert display names (e.g. 'Lightning Bolt') into *card objects*.
 
-    Uses cards.name_to_id_dict to get the internal id (e.g. 'c234704'),
-    then searches all loaded modules for a matching card class.
+    Normal path:
+      - Use cards.name_to_id_dict to get the internal id (e.g. 'c234704'),
+      - Find a matching card class via _find_card_cls,
+      - Instantiate that class.
+
+    Fallback path (research-only):
+      - If no engine class is found, but the name exists in SIMPLE_CARDS,
+        construct a SimpleCard from the spec.
+
+    If neither path works, collect the missing names and raise KeyError.
     """
     objs = []
     missing = []
 
     for name in names:
+        # First, try normal engine path via name_to_id_dict
         card_id = cards.name_to_id_dict.get(name)
-        if card_id is None:
-            missing.append(f"{name} (no entry in name_to_id_dict)")
+
+        if card_id is not None:
+            try:
+                cls = _find_card_cls(card_id)
+                objs.append(cls())
+                continue  # done with this name
+            except KeyError:
+                # Engine knows the id, but no class is loaded. Fall through
+                # to simple-card fallback below.
+                pass
+
+        # Second, research-only fallback: use SIMPLE_CARDS
+        spec = SIMPLE_CARDS.get(name)
+        if spec is not None:
+            objs.append(SimpleCard(name, spec))
             continue
 
-        try:
-            cls = _find_card_cls(card_id)
-        except KeyError as e:
-            missing.append(f"{name} (id {card_id} not found as a class)")
-            continue
-
-        objs.append(cls())
+        # If neither engine class nor SIMPLE_CARDS spec exists, record as missing
+        missing.append(f"{name} (no engine class and no SIMPLE_CARDS spec)")
 
     if missing:
         raise KeyError(
