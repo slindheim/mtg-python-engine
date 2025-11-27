@@ -269,17 +269,41 @@ class HeuristicAgent:
         """
         Respond to generic prompts.
 
-        In our current environment (no instants / no targeting),
-        we only occasionally see discard-like prompts.
+        We try to detect:
+        - attacker selection prompts
+        - (later) blocker / discard prompts
+
+        For Stage 1, we keep it simple:
+        - attack with all our creatures when asked about attackers
+        - never block
+        - basic behavior for discarding
         """
-        if "Which cards would you like to discard" in prompt_string:
-            # Discard the 'worst' card: for now, just index 0
+        text = prompt_string.lower()
+
+        # 1) Declare attackers: attack with all our creatures
+        # The exact wording depends on the engine, but common patterns
+        # include "attackers", "attack with", "creatures that can attack".
+        if "attackers" in text or ("attack" in text and "creature" in text):
+            # Attack with all creatures we control (indices 0..n-1).
+            n = len(player.creatures)
+            if n == 0:
+                return ""
+            # e.g. "0 1 2 3"
+            return " ".join(str(i) for i in range(n))
+
+        # 2) Declare blockers: for now, we never block (very aggressive)
+        if "blockers" in text or "block with" in text:
+            return ""  # no blocks
+
+        # 3) Discard prompts
+        if "which cards would you like to discard" in text:
+            # Discard the first card by index
             return "0"
 
-        if "Which creature" in prompt_string:
+        if "which creature" in text:
             return "0"
 
-        # Default: no choice / press Enter
+        # 4) Default: press Enter / no choice
         return ""
 
 # Heuristiken abbilden - siehe Notes 
