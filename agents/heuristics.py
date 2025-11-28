@@ -229,74 +229,87 @@ class HeuristicAgent:
         """
         text = prompt_string.lower()
 
-                # 0) Handle "Choose a target" for spells we just cast
+        # 0) Handle "Choose a target" for spells we just cast
         if "choose a target" in text or "select a target" in text:
             role = getattr(self, "_pending_spell_role", None)
             opp = player.opponent
 
-            if role == "pacifism":
-                # target the largest power creature the opponent controls
-                opp_creatures = list(opp.creatures)
-                if opp_creatures:
-                    opp_creatures_sorted = sorted(
-                        opp_creatures,
-                        key=lambda c: self._get_power_toughness(c)[0],
-                        reverse=True,
-                    )
-                    target = opp_creatures_sorted[0]
-                    # find its index in opponent's battlefield
-                    idx = opp.creatures.index(target)
-                    self._pending_spell_role = None
-                    # "b N" = battlefield N of the *defending* player (the engine uses this convention)
-                    return f"b {idx}"
-                # no valid targets; clear and pass
-                self._pending_spell_role = None
-                return ""
-
+            # ---- Burn: Lightning Bolt / Lightning Strike ----
             if role == "burn":
-                # try to hit a killable creature first
                 burn_damage = 3
-                opp_creatures = list(opp.creatures)
+                # we choose among *opponent's battlefield permanents*
+                opp_battlefield = list(opp.battlefield)
+
+                # filter creatures that are killable by 3 damage
                 killable = [
-                    c for c in opp_creatures
-                    if self._get_power_toughness(c)[1] <= burn_damage
+                    c for c in opp_battlefield
+                    if getattr(c, "is_creature", False)
+                    and self._get_power_toughness(c)[1] <= burn_damage
                 ]
+
                 if killable:
-                    # target the highest-power killable creature
+                    # pick highest-power killable creature
                     killable_sorted = sorted(
                         killable,
                         key=lambda c: self._get_power_toughness(c)[0],
                         reverse=True,
                     )
                     target = killable_sorted[0]
-                    idx = opp.creatures.index(target)
+                    idx = opp_battlefield.index(target)
+                    # 'ob N' = Nth permanent on opponent's battlefield
                     self._pending_spell_role = None
-                    return f"b {idx}"
+                    return f"ob {idx}"
 
-                # otherwise, go face (opponent player)
-                # usually opponent is player1 if we are player0, but the engine parses "p 1" as opponent.
+                # safety fallback
                 self._pending_spell_role = None
-                return "p 1"
+                return ""
 
+            # ---- Pump: Giant/Titanic Growth-style effects ----
             if role == "pump":
-                # pump our own highest-power creature
-                my_creatures = list(player.creatures)
+                my_battlefield = list(player.battlefield)
+
+                my_creatures = [
+                    c for c in my_battlefield
+                    if getattr(c, "is_creature", False)
+                ]
                 if my_creatures:
+                    # buff our biggest creature
                     my_sorted = sorted(
                         my_creatures,
                         key=lambda c: self._get_power_toughness(c)[0],
                         reverse=True,
                     )
                     target = my_sorted[0]
-                    idx = player.creatures.index(target)
+                    idx = my_battlefield.index(target)
+                    # 'b N' = Nth permanent on your battlefield
                     self._pending_spell_role = None
-                    # "b N" from our own perspective means our battlefield
                     return f"b {idx}"
 
                 self._pending_spell_role = None
                 return ""
 
-            # If we don't recognize the spell, just pass
+            # ---- Pacifism / other auras (future) ----
+            if role == "pacifism":
+                opp_battlefield = list(opp.battlefield)
+                opp_creatures = [
+                    c for c in opp_battlefield
+                    if getattr(c, "is_creature", False)
+                ]
+                if opp_creatures:
+                    opp_sorted = sorted(
+                        opp_creatures,
+                        key=lambda c: self._get_power_toughness(c)[0],
+                        reverse=True,
+                    )
+                    target = opp_sorted[0]
+                    idx = opp_battlefield.index(target)
+                    self._pending_spell_role = None
+                    return f"ob {idx}"
+
+                self._pending_spell_role = None
+                return ""
+
+            # unknown role -> do nothing
             self._pending_spell_role = None
             return ""
 
@@ -370,7 +383,7 @@ class HeuristicAgent:
                 power, _ = self._get_power_toughness(c)
                 incoming_damage += power
 
-            # baby rule: only block if incoming damage >= current life
+            # easy blocking rule: only block if incoming damage >= current life
             if incoming_damage >= player.life:
                 # block with all available creatures (engine will assign specifics)
                 return " ".join(str(i) for i in blocker_indices)
@@ -410,6 +423,82 @@ class HeuristicAgent15(HeuristicAgent):
 
     def select_choice(self, player, game, prompt_string):
         text = prompt_string.lower()
+
+        # ============================================================
+        # 0) Handle targeting for spells (burn, pump, pacifism later)
+        # ============================================================
+        if "choose a target" in text or "select a target" in text:
+            role = getattr(self, "_pending_spell_role", None)
+            opp = player.opponent
+
+            # ---- Burn: Lightning Bolt / Strike ----
+            if role == "burn":
+                burn_damage = 3
+                opp_battlefield = list(opp.battlefield)
+
+                killable = [
+                    c for c in opp_battlefield
+                    if getattr(c, "is_creature", False)
+                    and self._get_power_toughness(c)[1] <= burn_damage
+                ]
+                if killable:
+                    killable_sorted = sorted(
+                        killable,
+                        key=lambda c: self._get_power_toughness(c)[0],
+                        reverse=True,
+                    )
+                    target = killable_sorted[0]
+                    idx = opp_battlefield.index(target)
+                    self._pending_spell_role = None
+                    return f"ob {idx}"
+
+                self._pending_spell_role = None
+                return ""
+
+            # ---- Pump ----
+            if role == "pump":
+                my_battlefield = list(player.battlefield)
+                my_creatures = [
+                    c for c in my_battlefield
+                    if getattr(c, "is_creature", False)
+                ]
+                if my_creatures:
+                    my_sorted = sorted(
+                        my_creatures,
+                        key=lambda c: self._get_power_toughness(c)[0],
+                        reverse=True,
+                    )
+                    target = my_sorted[0]
+                    idx = my_battlefield.index(target)
+                    self._pending_spell_role = None
+                    return f"b {idx}"
+
+                self._pending_spell_role = None
+                return ""
+
+            # ---- Pacifism / aura-style removal (future) ----
+            if role == "pacifism":
+                opp_battlefield = list(opp.battlefield)
+                opp_creatures = [
+                    c for c in opp_battlefield
+                    if getattr(c, "is_creature", False)
+                ]
+                if opp_creatures:
+                    opp_sorted = sorted(
+                        opp_creatures,
+                        key=lambda c: self._get_power_toughness(c)[0],
+                        reverse=True,
+                    )
+                    target = opp_sorted[0]
+                    idx = opp_battlefield.index(target)
+                    self._pending_spell_role = None
+                    return f"ob {idx}"
+
+                self._pending_spell_role = None
+                return ""
+
+            self._pending_spell_role = None
+            return ""
 
         # ---------- 1) Declare attackers (reuse Stage 1.0 logic) ----------
         if "attackers" in text or ("attack" in text and "creature" in text):

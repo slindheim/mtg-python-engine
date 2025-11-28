@@ -60,7 +60,7 @@ def run_one_game(game_id, agent0=None, agent1=None, test=False, debug_path=None)
     # 2) Build decks as lists of Card objects
     # CHANGE DECKS HERE AS NEEDED
     deck0_name, deck0 = build_mono_green_deck()
-    deck1_name, deck1 = build_mono_white_deck()
+    deck1_name, deck1 = build_mono_red_deck()
     decks = [deck0, deck1]
 
     # 3) Create Game with the decks
@@ -258,7 +258,7 @@ if __name__ == "__main__":
                 game_id=i,
                 agent0=agent0,
                 agent1=agent1,
-                test=True,          # debugging mode
+                test=False,          # change debugging mode
                 debug_path=debug_path
             )
             writer.writerow(stats)
