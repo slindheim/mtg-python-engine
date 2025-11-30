@@ -1,13 +1,12 @@
 from pathlib import Path
-import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 
 
-def load_merged_csv(merged_path):
-    merged_file = Path(merged_path)
+def load_merged_csv():
+    merged_file = Path("/home/p89n90/mtg-python-engine/results/merged.csv")
     if not merged_file.exists():
         raise FileNotFoundError(f"Merged CSV not found: {merged_file}")
     return pd.read_csv(merged_file)
@@ -86,4 +85,33 @@ def plot_mana_waste_proxies(long_df, out_dir, tag):
         print(f"Saved: {out}")
 
     if 'land_plays' in long_df.columns and 'main_phase_passes' in long_df.columns:
-        agg = long_df.gr_
+        agg = long_df.groupby('agent').agg({'land_plays': 'mean', 'main_phase_passes': 'mean'}).reset_index()
+        plt.figure(figsize=(8, 5))
+        sns.barplot(data=agg.melt(id_vars='agent'), x='agent', y='value', hue='variable')
+        plt.title('Avg land plays and main phase passes per agent')
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        out2 = Path(out_dir) / f'landplays_passes_by_agent_{tag}.png'
+        plt.savefig(out2)
+        plt.close()
+        print(f"Saved: {out2}")
+
+
+def main():
+    results_dir = Path("/home/p89n90/mtg-python-engine/results")
+    out_dir = results_dir / "figures"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    tag = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    df = load_merged_csv()
+    print(f"Loaded {len(df)} games from: {results_dir}/merged.csv")
+
+    plot_win_rates(df, out_dir, tag)
+    long = prepare_long_player_stats(df)
+    plot_resource_utilization(long, out_dir, tag)
+    plot_mana_waste_proxies(long, out_dir, tag)
+
+
+if __name__ == '__main__':
+    main()
