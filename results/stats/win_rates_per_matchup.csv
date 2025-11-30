@@ -1,0 +1,6 @@
+matchup,games,wins_agent0,wins_agent1,win_rate_agent0,win_rate_agent1
+"('HeuristicAgent', 'HeuristicAgent')",20,13,7,0.65,0.35
+"('HeuristicAgent', 'HeuristicAgent15')",367,270,97,0.7356948228882834,0.26430517711171664
+"('HeuristicAgent', 'RandomAgent')",1890,1078,812,0.5703703703703704,0.42962962962962964
+"('HeuristicAgent15', 'HeuristicAgent15')",160,114,46,0.7125,0.2875
+"('RandomAgent', 'RandomAgent')",20,20,0,1.0,0.0

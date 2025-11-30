@@ -1,0 +1,5 @@
+game_id,agent0,agent1,deck0_name,deck1_name,winner,end_reason,p0_life,p1_life,p0_library_size,p1_library_size,p0_battlefield_creatures,p1_battlefield_creatures,p0_land_plays,p0_creature_casts,p0_approx_mana_spent,p0_main_phase_actions,p0_main_phase_passes,p1_land_plays,p1_creature_casts,p1_approx_mana_spent,p1_main_phase_actions,p1_main_phase_passes
+0,HeuristicAgent,HeuristicAgent15,mono_green_midrange,mono_red_aggro,0,life,10,-2,31,30,3,6,6,4,14,23,13,5,8,24,27,14
+1,HeuristicAgent,HeuristicAgent15,mono_green_midrange,mono_red_aggro,0,life,15,-9,30,29,5,5,7,7,30,28,13,6,5,39,28,3
+2,HeuristicAgent,HeuristicAgent15,mono_green_midrange,mono_red_aggro,0,life,12,-2,31,30,3,3,6,4,14,23,13,5,3,18,21,5
+3,HeuristicAgent,HeuristicAgent15,mono_green_midrange,mono_red_aggro,0,life,16,-13,31,30,5,3,6,8,25,25,10,5,4,14,22,5
